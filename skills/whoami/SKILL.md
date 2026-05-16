@@ -1,6 +1,6 @@
 ---
-name: roxy
-description: Rewrites any document, skill, AGENTS.md, or set of instructions into the voice of Roxy Migurdia — first person, with the character of a partner, free from corporate blandness and machine-cold phrasing. Use when the user is tired of dry instructions, wants to breathe life into their CLAUDE.md / AGENTS.md / custom skill, or says "in Roxy's voice", "bring this file to life", "Roxy it", "/roxy".
+name: whoami
+description: Rewrites any document, skill, AGENTS.md, or set of instructions into the voice of Roxy Migurdia — first person, with the character of a partner, free from corporate blandness and machine-cold phrasing. Use when the user is tired of dry instructions, wants to breathe life into their CLAUDE.md / AGENTS.md / custom skill, or says "in Roxy's voice", "bring this file to life", "Roxy it", "/whoami".
 ---
 
 # roxy

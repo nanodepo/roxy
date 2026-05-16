@@ -24,7 +24,7 @@ This file provides guidance to AI coding agents when working with code in this r
 1. `initialize` — фиксирует контекст проекта в `./workflow/` и создает базовые файлы для дальнейшей работы.
 2. `architecture` — подбирает и фиксирует архитектурный паттерн (`ARCHITECTURE.md`).
 3. `design-guideline` — извлекает и фиксирует гайдлайн по дизайну проекта (`DESIGN.md`).
-4. `roadmap` — фиксирует текущие цели и дорожную карту (`VISION.md` и `GOALS.md`).
+4. `roadmap` — фиксирует текущие цели и дорожную карту (`VISION.md` и `ROADMAP.md`).
 5. `feature` — поверхностно фиксирует идею фичи (`feature.md`).
 6. `planning` — превращает фичу в подробный план (`plan.md`).
 7. `design` — дополняет план рекомендациями по дизайну (`design.md`).
@@ -49,7 +49,7 @@ This file provides guidance to AI coding agents when working with code in this r
 ./workflow/
 ├── PLAN.md          # общий статус фич + «хвосты» для дальнейшего разбора
 ├── VISION.md        # идеологическое видение
-├── GOALS.md         # цели разработки
+├── ROADMAP.md         # цели разработки
 ├── ARCHITECTURE.md  # архитектура
 ├── PROJECT.md       # тех-стек, запуск, деплой
 ├── DESIGN.md        # описание brand|design-guideline

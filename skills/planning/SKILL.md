@@ -1,319 +1,338 @@
 ---
 name: planning
 description: >
-  Превращает зафиксированную фичу из `./workflow/features/{slug}/feature.md` в подробный план реализации.
-  Делает глубокую разведку кодовой базы, декомпозирует работу на фазы и задачи с указанием файлов,
-  отдельно описывает базовые сценарии тестирования. На выходе — `plan.md` и `tests.md` рядом с `feature.md`,
-  плюс обновлённый статус в `./workflow/PLAN.md`. Используй когда пользователь говорит «спланируй фичу»,
-  «составь план», «разработай план» или когда есть зафиксированная фича
-  и нужно превратить её в выполнимый план перед разбивкой на задачи.
+  Turns a feature brief into an implementation plan at
+  ./workflow/features/{slug}/plan.md and marks the feature planned in
+  ./workflow/PLAN.md. Use for "plan feature", "create plan", "write plan.md",
+  or "turn feature into a plan".
 ---
 
-# Planning — план реализации фичи
+# Planning
 
-## Назначение
+## Purpose
 
-Берёт фичу из `./workflow/features/{slug}/feature.md`, разбирает связанный код, проектирует план реализации и описание базовых тестовых сценариев. Создаёт `plan.md` и `tests.md` рядом с `feature.md`. Обновляет статус фичи в `./workflow/PLAN.md`.
+Turn `./workflow/features/{slug}/feature.md` into an implementation plan at
+`./workflow/features/{slug}/plan.md` and set the feature status to `[-]` in
+`./workflow/PLAN.md`.
 
-Не создаёт фичу с нуля, не разбивает план на отдельные таски, не пишет код, не пишет код тестов — это другие скилы.
+Use this skill after `feature`. It answers "how to build this": it reads the
+feature brief and project context, inspects the codebase as deeply as a
+realistic plan requires, builds a dependency graph, and decomposes the work
+into phases with concrete checkboxes, likely touched files, dependencies,
+risks, and exit criteria.
 
-## Параметры
+The plan is read by `design`, `improve`, `task`, `implement`, `test`, and
+`docs`. It does not own the test plan, the feature UI design, task files, or
+product code.
 
-Строка `args`:
+## Parameters
 
+Use `args` to name the feature:
+
+```txt
+<feature-slug>
 ```
-<slug>
-```
 
-- `slug` — имя папки фичи внутри `./workflow/features/`.
+- `feature-slug` is the directory name under `./workflow/features/`.
+- If `feature-slug` is absent, infer it from the current user message and the
+  active entries in `./workflow/PLAN.md`, but only when exactly one feature has
+  a `feature.md` and matches the request.
+- If the feature still cannot be identified, ask one short question for the
+  slug and stop until answered.
 
-`slug` не передан или папки `./workflow/features/{slug}/` нет → собери фичи со статусом `[ ]` или `[-]` из `./workflow/PLAN.md` и спроси через `AskUserQuestion` какую планировать. Список пуст → остановись, сообщи: «Нет фич, готовых к планированию. Сначала зафиксируй фичу.»
+## Strict Rules
 
-`./workflow/features/{slug}/feature.md` отсутствует → остановись, сообщи: «`feature.md` для `{slug}` отсутствует. Сначала зафиксируй фичу через скил создания фичи.»
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout commands, or worktree commands.
+- Own only `./workflow/features/{slug}/plan.md` and the matching service status
+  in `./workflow/PLAN.md`.
+- Do not write `tests.md`, `design.md`, `NN-task.md`, product code, user
+  documentation, developer documentation, or a separate PRD or SPEC artifact.
+- Stay read-only toward product code. Inspect the codebase to plan; do not
+  modify it.
+- Do not call downstream skills automatically. Stop after `plan.md` and the
+  `PLAN.md` status are ready.
+- Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
+  asking final questions or writing the plan. Turning a feature into a phased
+  implementation plan is analytical work.
+- Ask only blocking clarifying questions. A gap is blocking only when the plan
+  cannot be made realistic without the answer. Record non-blocking gaps as open
+  questions in `plan.md` instead of interrupting the user.
+- Write the current plan only. Do not include conversation biography, previous
+  plan states, "now/previously" comparisons, migration notes, or removed
+  behavior.
+- Keep test ideas out of `plan.md`. Verification checkpoints in the plan check
+  implementation progress; they do not replace `tests.md`. Phrase any
+  verification need as live behavior or a product invariant, not as an incident
+  or a deletion check.
+- Preserve the working language and local document style of the existing
+  `./workflow/` files. Keep paths, tool names, code identifiers, and status
+  markers in their original spelling.
 
-## Жёсткие правила
+## Steps
 
-1. **`mcp__sequential-thinking__sequentialthinking`** обязателен на этапах 4 и 6.
-2. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`, `git worktree`. Не создавай ветки и не предлагай коммиты.
-3. **Язык артефактов и общения — Русский.** Имена файлов, путей, модулей, классов, функций, типов, констант — в оригинале.
-4. **Сжатие.** Перед записью `plan.md` и перед записью `tests.md` применяй правила секции «## Сжатие финального артефакта».
-5. **Финал — обновление `./workflow/PLAN.md`.** Статус фичи → `[-]`. Открытые вопросы для пользователя → раздел «хвостов» PLAN.md.
-6. **`plan.md` не дублирует `feature.md`.** План реализации, не пересказ описания. Короткая выдержка контекста допустима, копия — нет.
-7. **`tests.md` — только базовая бизнес-логика.** Базовые сценарии, поведение, доступность страниц, наличие критичной информации. Никаких тестов на очевидное, на удалённое поведение, на языковые операции, на тривиальные геттеры/сеттеры.
-8. **`plan.md` написан так, чтобы агент-имплементатор не нуждался в предыстории.** Не описывай, как пришли к решению — описывай решение и условия проверки.
-9. **Имена сценариев в `tests.md` отражают защищаемый инвариант**, не инцидент, не процесс, не языковую операцию.
-10. **Каждый раздел `plan.md` существует, потому что без него имплементатор не сможет действовать.** Раздел не нужен → не пиши его.
-11. **Открытые вопросы**, не разрешённые на этапе анализа, фиксируются в `plan.md` отдельной секцией «Открытые вопросы» и попадают в хвосты `./workflow/PLAN.md`. Не оставляй «выяснить позже» без явной отметки.
-12. **Режим планирования задач — рекомендуется.** Процедура длинная, с вложенными вызовами `Agent`. Включи встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте) и фиксируй прохождение этапов.
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
 
-## Этапы
+### 1. Identify the feature
 
-### 1. Принять slug и прочитать `feature.md`
+Resolve `{slug}` from `args`, the user message, or `./workflow/PLAN.md`.
 
-- `args` непустой → возьми slug оттуда.
-- `args` пустой:
-  - `Read ./workflow/PLAN.md` если есть. Собери фичи со статусом `[ ]` или `[-]`.
-  - Список пуст или файла нет → остановись: «Нет фич, готовых к планированию. Сначала зафиксируй фичу.»
-  - Список непуст → `AskUserQuestion` по каждой фиче; первой ставь самую раннюю по списку с пометкой «(Recommended)».
-- `Read ./workflow/features/{slug}/feature.md`. Файла нет → остановись, сообщи пользователю.
+Stop and ask for the slug if:
 
-### 2. Загрузить контекст проекта
+- `./workflow/features/{slug}/` does not exist;
+- `./workflow/features/{slug}/feature.md` is missing;
+- several active features could match the request.
 
-Каждый файл ниже — `Read` если существует, пропусти если нет:
+Do not create a missing feature brief in this skill.
 
-- `./workflow/VISION.md` — идеологическое видение.
-- `./workflow/GOALS.md` — цели разработки.
-- `./workflow/PROJECT.md` — тех-стек, запуск, деплой.
-- `./workflow/ARCHITECTURE.md` — архитектурный паттерн и границы.
+If `./workflow/features/{slug}/plan.md` already exists, treat this run as an
+update: rebuild the plan from current inputs rather than appending to the old
+text.
 
-`./workflow/ARCHITECTURE.md` отсутствует → пометь как ограничение для этапа 4 и зафиксируй в хвостах `./workflow/PLAN.md` на этапе 9.
+### 2. Read the feature and project context
 
-### 3. Опрос предпочтений
+Read, in this order:
 
-`AskUserQuestion`, один блок, два вопроса:
+- `./workflow/features/{slug}/feature.md` — the scope authority for the plan.
+- `./workflow/features/{slug}/design.md`, if it exists — UI constraints.
+- `./workflow/PROJECT.md` — stack, run, deploy, and project shape.
+- `./workflow/ARCHITECTURE.md` — the architectural pattern and code placement
+  rules the plan must respect.
+- `./workflow/DESIGN.md` — only when the feature touches UI or user
+  interaction.
+- `./workflow/PLAN.md` — existing feature list and workflow status.
 
-1. **Уровень логирования для имплементации**:
-   - Verbose (Recommended) — подробные DEBUG-логи, удобно при отладке AI-сгенерированного кода.
-   - Standard — INFO, ключевые события.
-   - Minimal — только WARN/ERROR.
+Use the feature brief as the scope authority. Use architecture, design, and
+project files as constraints, not as permission to add unrelated work.
 
-2. **Особые ограничения или требования** (опционально):
-   - Нет — стандартная имплементация.
-   - Other — пользователь вводит требования текстом.
+### 3. Reconnoiter the codebase
 
-Ответы фиксируй — пойдут в секцию «Настройки» `plan.md`.
+Inspect the codebase as deeply as a realistic plan requires, but stay focused
+on evidence the plan needs. Use `rg`, `rg --files`, and direct reads.
 
-### 4. Sequential-thinking: анализ фичи в контексте проекта
+Find and verify:
 
-Через `mcp__sequential-thinking__sequentialthinking` ответь:
+- similar modules, routes, components, services, schemas, migrations, configs,
+  and conventions the plan should follow;
+- what already exists, what must change, what must be created;
+- public API, CLI, database, or UI contracts that several parts of the system
+  share;
+- boundaries the architecture or stack does not allow the plan to cross;
+- deployment or runtime concerns that constrain the implementation.
 
-- Что требуется сделать (из `feature.md`)?
-- Какие модули и файлы релевантны?
-- Какие открытые вопросы в `feature.md`? Какие закрываются анализом, какие выносятся в `plan.md` как «Открытые вопросы»?
-- Какие риски, побочные эффекты, edge cases?
-- Какие архитектурные ограничения из `./workflow/ARCHITECTURE.md` применимы?
-- Какие фазы напрашиваются?
+Record what is verified versus assumed, so the plan does not name phantom
+paths, modules, or dependencies.
 
-Итог фиксируй в своём контексте.
+### 4. Analyze with `mcp__sequential-thinking__sequentialthinking`
 
-### 5. Разведка кодовой базы через `Agent`
+Call `mcp__sequential-thinking__sequentialthinking` and reason through:
 
-Параллельно 2–3 агента через `Agent` tool, `subagent_type: Explore`, `model: sonnet`:
+- the behavior the feature must deliver and the technical approach that fits
+  the existing architecture and stack;
+- vague feature requirements reframed as verifiable success criteria;
+- what is `In` scope and what must be explicitly `Out` to stop scope creep;
+- a dependency graph across foundation, data/model, API/contracts,
+  UI/interaction, integrations, and rollout/runtime constraints;
+- a decomposition into phases that each lead to working, verifiable behavior —
+  prefer vertical slices that produce real behavior over horizontal layers of
+  isolated infrastructure;
+- for each phase: goal, concrete ordered checkboxes, likely touched files,
+  dependencies, risks with practical mitigations, and exit criteria;
+- which work is strictly sequential and which can run in parallel;
+- assumptions safe to keep versus gaps that block a realistic plan.
 
-- **Агент 1 — затронутые модули и архитектура**: «Найди файлы и модули, связанные с {ключевые домены фичи}. Опиши директорию, ключевые точки входа, как модули взаимодействуют. Thoroughness: medium.»
-- **Агент 2 — существующие паттерны**: «Найди примеры похожей функциональности. Покажи паттерны для {релевантные паттерны: эндпоинты, сервисы, модели и т.п.}. Thoroughness: medium.»
-- **Агент 3 — зависимости и интеграции** (если применимо): «Найди все файлы, которые импортируют/используют {модуль/сервис}. Определи точки интеграции и потенциальные побочные эффекты. Thoroughness: medium.»
+Use reference ideas as filters:
 
-Проект пустой или релевантного кода нет → пропусти разведку, опирайся на `./workflow/ARCHITECTURE.md`.
+- Split any phase or checkbox that is too broad: it spans many files or many
+  subsystems, or its name contains "and". Each checkbox is concrete, ordered,
+  and verb-first; avoid vague steps like "handle backend" or "do auth".
+- Keep each phase context-safe: a limited scope, named dependencies, concrete
+  files, and a clear exit criterion, so it can be executed without holding the
+  whole project in mind.
+- If a phase still cannot be made context-safe, say so in the plan and propose
+  how to cut it smaller.
+- If a planning decision changes the meaning of the feature, record it in
+  `plan.md` under decisions or raise it as an open question.
 
-После возврата агентов синтезируй:
+### 5. Ask blocking questions only
 
-- Какие файлы создаём / меняем.
-- Каким паттернам следуем (из существующего кода).
-- Зависимости между компонентами.
-- Риски и edge cases.
+Try to close gaps from `feature.md`, the workflow files, and the codebase
+before asking the user.
 
-### 6. Sequential-thinking: проектирование `plan.md` и `tests.md`
+Ask at most three concise questions in one block, grouped by category — scope,
+user interaction, data, integrations, constraints. For each question, put the
+recommended answer first with `(Recommended)` and a short reason, and offer
+only materially different options.
 
-Через `mcp__sequential-thinking__sequentialthinking` спроектируй:
+If a gap does not block a realistic plan, write it under `Open questions` in
+`plan.md` instead of interrupting the user.
 
-**`plan.md`:**
+### 6. Write `plan.md`
 
-- Декомпозиция на фазы (Setup, Core Implementation, Integration — зависит от фичи).
-- Задачи внутри фаз: что делаем, файлы, зависимости, требования к логированию (по выбранному уровню).
-- Затронутые компоненты — список файлов и модулей.
-- Открытые вопросы (если остались после этапа 4).
+Write `./workflow/features/{slug}/plan.md` using the Artifact Requirements
+below. Describe the current plan state with no history of how the plan was
+produced.
 
-**`tests.md`:**
+### 7. Update `./workflow/PLAN.md`
 
-- Базовые сценарии бизнес-логики: что делает пользователь, какие инварианты выполняются.
-- Имена сценариев — про инвариант. «`guest_cannot_delete_project`» вместо «`removed_old_delete_button`». «`primary_action_is_available_from_toolbar`» вместо «`button_moved_to_toolbar`».
-- Чем меньше сценариев, тем лучше. Сложная фича → расширяй, но не покрывай очевидное и не пиши тесты на удалённое поведение.
+Set the feature status to `[-]` (planned).
 
-Структуру обоих документов зафиксируй перед записью.
+Preserve the file's structure, other feature entries, and their status markers.
+Change only the line for this feature. Use the existing local format; if no
+stronger pattern exists, point the entry at
+`./workflow/features/{slug}/plan.md`.
 
-### 7. Сжать и записать `plan.md`
+### 8. Final verification
 
-1. `Read .claude/skills/planning/references/template.md` — шаблон.
-2. Сформируй `plan.md` по шаблону + результаты этапа 6.
-3. Примени правила секции «## Сжатие финального артефакта».
-4. `Bash mkdir -p ./workflow/features/{slug}` — идемпотентно.
-5. `Write ./workflow/features/{slug}/plan.md`.
+Reread the written `plan.md` and the changed `./workflow/PLAN.md` entry.
 
-### 8. Сжать и записать `tests.md`
+Confirm:
 
-1. Сформируй `tests.md` по шаблону из `references/template.md` (раздел tests) + результаты этапа 6.
-2. Примени правила секции «## Сжатие финального артефакта». Имена инвариантов и формулировки самих инвариантов остаются полными — сжатие к окружающему тексту, не к ним.
-3. `Write ./workflow/features/{slug}/tests.md`.
+- the plan can be handed to `design`, `improve`, or `task` with no chat
+  retelling;
+- no phantom path, module, or dependency remains as an instruction;
+- `In` and `Out` scope are explicit;
+- every phase has a goal, ordered checkboxes, likely files, dependencies, and
+  an exit criterion;
+- no `tests.md`, `design.md`, `NN-task.md`, code, or documentation was created;
+- the plan describes the current desired state without biography or delta
+  wording.
 
-### 9. Обновить `./workflow/PLAN.md`
+## Artifact Requirements
 
-- Файла нет → создай с заголовком «# План проекта», разделом «## Фичи» (чек-лист) и разделом «## Открытые вопросы».
-- Фича в чек-листе → переключи статус на `[-]`.
-- Фичи нет → добавь строкой `- [-] {slug} — {краткое название из feature.md}`.
-- Появились открытые вопросы на этапах 2–6 (отсутствие `ARCHITECTURE.md`, неоднозначность из `feature.md`, выбор между альтернативами архитектуры) → добавь в раздел «## Открытые вопросы» со ссылкой на фичу.
+Write `./workflow/features/{slug}/plan.md` in the working language of the
+existing `./workflow/` files.
 
-### 10. Отчёт
+Use this structure, scaled to the feature's complexity — omit optional sections
+that add no information for a simple feature:
 
-5–8 строк пользователю:
+```md
+# plan.md
 
-- Какие файлы созданы и где.
-- Сколько фаз и задач.
-- Сколько базовых сценариев в `tests.md`.
-- Статус фичи в `./workflow/PLAN.md`.
-- Открытые вопросы (если есть).
-- Дальше — запустить скил разбивки плана на отдельные таски.
+## Цель
 
-## Требования к артефактам
+What behavior the feature must deliver and the chosen approach.
 
-### `plan.md`
+## Scope
 
-```markdown
-# План: {название фичи}
+### In
 
-Дата: {YYYY-MM-DD}
+- What the implementation covers
 
-## Настройки
-- Логирование: verbose / standard / minimal
-- Особые требования: {текст пользователя или «нет»}
+### Out
+
+- What the implementation does not cover
 
 ## Контекст
-{1–3 коротких абзаца — что и зачем; не копия feature.md}
 
-## Затронутые компоненты
-- {путь/к/файлу} — {роль}
-- {путь/к/модулю} — {роль}
+- Input documents
+- Relevant modules
+- Local patterns to follow
+- Architecture, design, or stack constraints
 
-## Задачи
+## Решения
 
-### Фаза 1: {Название}
-- [ ] Задача 1: {описание; файлы; логирование; зависимости}
-- [ ] Задача 2: ...
+- Technical decisions and their reasons
+- Contracts shared between parts of the system
+- Assumptions safe enough to proceed on
 
-### Фаза 2: {Название}
-- [ ] Задача 3: ... (зависит от задачи 1)
+## Dependency graph
 
-## Открытые вопросы
-- {вопрос} — требует уточнения у пользователя
-```
+- Foundation
+- Data/model
+- API/contracts
+- UI/interaction
+- Integrations
+- Rollout/runtime constraints
 
-Открытых вопросов нет → секция опускается.
+## Фазы
 
-### `tests.md`
+### Phase 1: <name>
 
-```markdown
-# Тесты: {название фичи}
+Goal: ...
 
-Дата: {YYYY-MM-DD}
+- [ ] Concrete, ordered, verb-first action
+- [ ] Concrete, ordered, verb-first action
 
-## Базовые сценарии
+Likely files:
 
-### {invariant_name_snake_case}
-{1–2 предложения: что проверяется и почему этот инвариант важен.}
+- `path/to/file`
 
-### {invariant_name_snake_case}
+Dependencies:
+
+- None / Phase N / external answer
+
+Risks:
+
+- Risk -> practical mitigation
+
+Exit criteria:
+
+- What must be true after the phase
+
+### Phase 2: <name>
+
 ...
+
+## Checkpoints
+
+- [ ] After foundation: ...
+- [ ] After the core flow: ...
+- [ ] Before handing off to `task`: ...
+
+## Open questions
+
+- Only questions that affect the implementation
+
+## Хвосты
+
+- What to pass on to `design`, `task`, `test`, `docs`, or the user
 ```
 
-Имена сценариев — про инвариант:
+The plan is ready when:
 
-- `guest_cannot_delete_project`
-- `primary_action_is_available_from_toolbar`
-- `checkout_requires_confirmed_payment_method`
-- `billing_period_starts_on_first_business_day`
+- another agent can act on it without conversation history;
+- `In` and `Out` keep the scope from spreading;
+- each phase has a goal, ordered actions, likely files, dependencies, and exit
+  criteria;
+- risks carry a practical mitigation, not a generic warning;
+- oversized phases are cut to a manageable size;
+- checkpoints verify implementation progress without standing in for a test
+  plan;
+- open questions are short and genuinely affect the implementation;
+- the plan holds no test canon, feature UI design, code, or documentation.
 
-А не:
+If the feature is too thin to plan safely, still keep this skill's boundary:
+write a minimal honest `plan.md` that names the missing inputs and the next
+required workflow stage instead of fabricating phases.
 
-- `removed_old_delete_button`
-- `fixes_bug_1234`
-- `getter_returns_set_value`
+## Updating PLAN.md
 
-### Описание задачи внутри `plan.md`
+At the end, set the matching feature in `./workflow/PLAN.md` to status `[-]`.
 
-Каждая задача указывает:
+The status markers are:
 
-- Результат и ожидаемое поведение.
-- Пути к файлам, которые создаются или меняются.
-- Требования к логированию (что, где, на каком уровне).
-- Зависимости от других задач (если применимо).
+- `[ ]` new;
+- `[-]` planned;
+- `[+]` split into tasks;
+- `[x]` implemented;
+- `[*]` tested;
+- `[/]` archived.
 
-Без требований к логированию задача неполна.
+Change only this feature's line. Do not touch statuses or entries for other
+features.
 
-## Обновление `./workflow/PLAN.md`
+## Notes
 
-Статусы фич:
-- `[ ]` Новая фича
-- `[-]` Прошла планирование
-- `[+]` Разбита на задачи
-- `[x]` Выполнена
-- `[*]` Покрыта тестами и протестирована
-- `[/]` Перенесена в архив
-
-Скил `planning` переключает статус с `[ ]` на `[-]`. Фичи в чек-листе нет → добавь запись.
-
-Раздел «## Открытые вопросы» в `PLAN.md` — для хвостов, которые скил `planning` не вправе решать:
-- Отсутствует `ARCHITECTURE.md` → «Архитектурный паттерн не зафиксирован — влияет на структуру фичи `{slug}`. Запустить скил архитектуры.»
-- Неоднозначность в `feature.md` → «`{slug}`: уточнить {вопрос}.»
-- Выбор между альтернативами реализации, который скил не закрывает → «`{slug}`: выбрать между {A} и {B}.»
-
-## Сжатие финального артефакта
-
-Перед записью `plan.md` и перед записью `tests.md` применяй правила ниже к содержимому.
-
-### Что сохраняется без изменений
-
-- Заголовки разделов из шаблона.
-- Имена файлов, путей, модулей, классов, функций, типов, констант, переменных, ID — полным именем.
-- Имена сценариев в `tests.md`.
-- Сообщения об ошибках, числа, версии, даты.
-- Код-блоки.
-- Структура `./workflow/...`.
-
-### Что убирается
-
-- **Филлер**: «как правило», «в общем», «в принципе», «по сути», «в действительности», «практически», «именно», «прямо», «фактически», «непосредственно», «собственно».
-- **Вежливость**: «пожалуйста», «было бы здорово», «давайте», «попробуем», «можешь сделать», «не мог бы ты».
-- **Хеджирование**: «возможно», «может быть», «вероятно», «как-то так», «по идее», «скорее всего», «в целом».
-- **Лишние обороты**: «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- **Дублирование** одной мысли в соседних предложениях — оставляй одно.
-
-### Замена короткими синонимами
-
-Где короткий синоним сохраняет смысл:
-
-- «осуществить» → «сделать»
-- «реализовать решение для» → «решить»
-- «произвести анализ» → «проанализировать»
-- «выполнить запись» → «записать»
-- «является» → опустить или тире
-- «представляет собой» → «—» или «это»
-- «должен быть выполнен» → «выполняется» или «делай»
-
-Технические термины и устоявшиеся обороты не заменяются.
-
-### Ultra-приёмы
-
-- **Стрелки причинности**: «X приводит к Y» → «X → Y».
-- **Один токен вместо двух**, если смысл сохраняется и нет двусмысленности.
-- **Сокращения общеизвестного** — только если они уже встречаются в русскоязычном контексте проекта («БД», «UI», «конфиг»). Новых не изобретать; английских аббревиатур без оснований не вводить.
-- **Фрагменты-перечисления** в списках, где каждое утверждение атомарно («Создаём {file}. Логируем вход.»).
-
-### Где НЕ применять сжатие
-
-- Условные конструкции «если X — делай Y, иначе Z».
-- Описания зависимостей между задачами в `plan.md`.
-- Предупреждения о побочных эффектах и рисках.
-- Места, где сжатие создаёт двусмысленность.
-- Формулировки инвариантов в `tests.md` — полным предложением.
-
-### Принцип
-
-Смысл и операционность важнее краткости. Не жми там, где вредно.
-
-## Замечания
-
-- `./workflow/` или `./workflow/features/` отсутствуют → проект не инициализирован. Остановись, попроси пользователя запустить инициализацию.
-- `./workflow/features/{slug}/feature.md` отсутствует → остановись, попроси сначала зафиксировать фичу.
-- `./workflow/ARCHITECTURE.md` отсутствует → продолжай с пометкой ограничения, фиксируй в хвостах `PLAN.md`.
-- `tests.md` выходит больше ~10 сценариев → пересмотри, нет ли тестов-эпизодов, тестов на очевидное или языковых проверок. Удаляй такие до записи.
-- Уровень логирования `verbose` рекомендован для AI-сгенерированного кода: скрытые ошибки сложно ловить без подробных логов; убрать логи позже легче, чем добавить.
+- A missing `PROJECT.md`, `ARCHITECTURE.md`, `DESIGN.md`, `VISION.md`, or
+  `ROADMAP.md` does not stop this skill. Proceed with the available context and
+  avoid inventing constraints.
+- If the codebase contradicts `feature.md`, trust the verified codebase for
+  what exists and plan around it, then record the conflict as an open question
+  or a tail.
+- If the user's request is really to design, improve, split into tasks,
+  implement, test, or document the feature, report the matching downstream
+  skill instead of doing that work here.
+- Keep the output operational: the next agent should see the current plan, not
+  a story about how it was built.

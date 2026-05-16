@@ -6,7 +6,7 @@
 
 В репозитории есть противоречия между текущими `SKILL.md`, конвейером в `AGENTS.md` и запланированными скилами. Главные примеры:
 
-- `initialize` создаёт `VISION.md` и `GOALS.md`, хотя это зона будущего `roadmap`.
+- `initialize` создаёт `VISION.md` и `ROADMAP.md`, хотя это зона будущего `roadmap`.
 - `planning` и `improve` создают или переписывают `tests.md`, хотя тестовый план должен принадлежать `test`.
 - `forge` закрепляет старые правила генерации, поэтому точечные правки отдельных скилов будут снова воспроизводить те же противоречия.
 
@@ -51,9 +51,9 @@
 
 | Скил | Как есть сейчас | Как должно быть |
 |---|---|---|
-| `initialize` | Создаёт `VISION.md`, `GOALS.md`, `PROJECT.md`, `PLAN.md`. | Только bootstrap: `./workflow/`, `PROJECT.md`, базовый `PLAN.md`, хвосты на `roadmap`, `architecture`, `design-guideline`. Не пишет `VISION.md` и `GOALS.md`. |
-| `roadmap` | Запланирован в `AGENTS.md`, но скила нет. | Единственный владелец `VISION.md` и `GOALS.md`: видение, цели, дорожная карта, приоритеты. |
-| `architecture` | Создаёт `ARCHITECTURE.md`, читает проектный контекст, обновляет хвосты в `PLAN.md`. | Оставить почти как есть. Только читать `VISION.md` / `GOALS.md` / `PROJECT.md`, писать `ARCHITECTURE.md` и хвосты. |
+| `initialize` | Создаёт `VISION.md`, `ROADMAP.md`, `PROJECT.md`, `PLAN.md`. | Только bootstrap: `./workflow/`, `PROJECT.md`, базовый `PLAN.md`, хвосты на `roadmap`, `architecture`, `design-guideline`. Не пишет `VISION.md` и `ROADMAP.md`. |
+| `roadmap` | Запланирован в `AGENTS.md`, но скила нет. | Единственный владелец `VISION.md` и `ROADMAP.md`: видение, цели, дорожная карта, приоритеты. |
+| `architecture` | Создаёт `ARCHITECTURE.md`, читает проектный контекст, обновляет хвосты в `PLAN.md`. | Оставить почти как есть. Только читать `VISION.md` / `ROADMAP.md` / `PROJECT.md`, писать `ARCHITECTURE.md` и хвосты. |
 | `design-guideline` | Создаёт `./workflow/DESIGN.md`: извлекает визуальный язык из кода или собирает опросом, обновляет хвосты в `PLAN.md`. | Оставить. Единственный владелец `./workflow/DESIGN.md`: бренд, визуальные принципы, UI-конвенции. |
 | `feature` | Создаёт только `feature.md` и регистрирует фичу в `PLAN.md` со статусом `[ ]`. | Оставить. Может читать `DESIGN.md`, но не создаёт дизайн, тесты или план. |
 | `planning` | Создаёт `plan.md` и `tests.md`. | Только `plan.md`: фазы, задачи, файлы, зависимости, риски, открытые вопросы. Не создаёт `tests.md`. |
@@ -65,7 +65,7 @@
 | `docs` | Делает проектный `README.md` и `./docs/{concept,spec,tech}/`; содержит mini-audit режим существующей документации. | Пишет документацию с нуля или обновляет текущую документацию на основе реализованной фичи. Audit вынести в `audit`. |
 | `audit` | Запланирован в `AGENTS.md`, но скила нет. | Только анализ и отчёт в чат. Не правит код, документы и workflow-артефакты. |
 | `markov` | Запланирован в `AGENTS.md`, но скила нет. | Прямая реализация законов Маркова: принимает локальный путь к документу, содержит полный свод законов, итеративно применяет каждый закон к документу, при необходимости поднимает контекст и переписывает переданный документ. |
-| `forge` | Генерирует старую модель: `initialize` владеет `VISION.md` / `GOALS.md`; `planning` и `improve` владеют `tests.md`. | Обновить первым: матрицу артефактов, спец-указания и структуру `workflow`, иначе новые скилы снова будут неправильными. |
+| `forge` | Генерирует старую модель: `initialize` владеет `VISION.md` / `ROADMAP.md`; `planning` и `improve` владеют `tests.md`. | Обновить первым: матрицу артефактов, спец-указания и структуру `workflow`, иначе новые скилы снова будут неправильными. |
 
 ## Найденные проблемы
 
@@ -74,11 +74,11 @@
 `initialize` сейчас создаёт:
 
 - `./workflow/VISION.md`
-- `./workflow/GOALS.md`
+- `./workflow/ROADMAP.md`
 - `./workflow/PROJECT.md`
 - `./workflow/PLAN.md`
 
-Но `AGENTS.md` вводит отдельный этап `roadmap`, который должен фиксировать `VISION.md` и `GOALS.md`.
+Но `AGENTS.md` вводит отдельный этап `roadmap`, который должен фиксировать `VISION.md` и `ROADMAP.md`.
 
 Риск: два владельца идеологического и целевого канона проекта. Дальше агенты будут либо перезаписывать чужую зону, либо не понимать, какой скил запускать.
 
@@ -92,7 +92,7 @@
 
 В `forge` матрица применимости и спец-указания всё ещё говорят:
 
-- `initialize` → `VISION.md`, `GOALS.md`, `PROJECT.md`
+- `initialize` → `VISION.md`, `ROADMAP.md`, `PROJECT.md`
 - `planning` → `plan.md`, `tests.md`
 - `improve` → `plan.md`, `tests.md`
 
@@ -139,7 +139,7 @@
 | `./workflow/PLAN.md` | общий индекс; каждый скил обновляет только свою строку статуса и хвосты |
 | `./workflow/PROJECT.md` | `initialize` |
 | `./workflow/VISION.md` | `roadmap` |
-| `./workflow/GOALS.md` | `roadmap` |
+| `./workflow/ROADMAP.md` | `roadmap` |
 | `./workflow/ARCHITECTURE.md` | `architecture` |
 | `./workflow/DESIGN.md` | `design-guideline` |
 | `./workflow/features/{slug}/feature.md` | `feature` |
@@ -158,8 +158,8 @@
 
 1. Обновить `AGENTS.md` как верхний канон: категории скилов, владельцы артефактов, порядок конвейера.
 2. Обновить `skills/forge/SKILL.md`: матрицу артефактов, спец-указания по типам, описание структуры `./workflow/`.
-3. Переписать `skills/initialize/SKILL.md`: оставить `PROJECT.md` и bootstrap, убрать `VISION.md` / `GOALS.md`.
-4. Создать `skills/roadmap/SKILL.md`: владелец `VISION.md` / `GOALS.md`.
+3. Переписать `skills/initialize/SKILL.md`: оставить `PROJECT.md` и bootstrap, убрать `VISION.md` / `ROADMAP.md`.
+4. Создать `skills/roadmap/SKILL.md`: владелец `VISION.md` / `ROADMAP.md`.
 5. Переписать `skills/planning/SKILL.md`: убрать создание `tests.md`.
 6. Переписать `skills/improve/SKILL.md`: убрать работу с `tests.md`.
 7. Переписать `skills/test/SKILL.md`: сделать его единственным владельцем `tests.md`; решить вопрос запуска тестов и статуса `[*]`.

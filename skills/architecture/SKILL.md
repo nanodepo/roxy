@@ -1,299 +1,171 @@
 ---
 name: architecture
-description: Подбирает архитектурный паттерн под проект и фиксирует его как канон. Используй, когда нужно определить или зафиксировать архитектуру.
-argument-hint: "[clean|ddd|microservices|monolith|layered]"
+description: >
+  Selects and records the project's architectural canon — the pattern, module
+  boundaries, and code placement rules — in ./workflow/ARCHITECTURE.md. Use when
+  the user says "зафиксируй архитектуру", "выбери архитектурный паттерн",
+  "опиши архитектуру проекта", or asks where code should live.
 ---
 
-# architecture — Зафиксировать архитектуру проекта
-
-## Назначение
-
-Создаёт каноническое описание архитектуры в `./workflow/ARCHITECTURE.md` на основе текущего состояния проекта: тех-стек из `./workflow/PROJECT.md`, видение из `./workflow/VISION.md`, цели из `./workflow/GOALS.md` и поверхностный анализ кодовой базы.
-
-Скил **не** анализирует фичи, **не** правит код, **не** трогает другие workflow-файлы кроме `ARCHITECTURE.md` и `PLAN.md`. Опирается на текущее состояние — без истории, без биографии решений.
-
-## Параметры
-
-Опциональный позиционный аргумент:
-
-```
-[clean | ddd | microservices | monolith | layered]
-```
-
-Задано → используй указанный паттерн напрямую, пропусти рекомендацию (этап 3 → этап 5) и переходи к этапу 4.
-
-Не задано → пройди полную процедуру с рекомендацией и опросом.
-
-Любое другое значение → сообщи допустимый список и остановись.
-
-## Жёсткие правила
-
-1. **`mcp__sequential-thinking__sequentialthinking`** обязателен на этапах 3 и 6. Не опция.
-2. **Никаких git-операций.** Не вызывай `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`, `git push`, `git pull`. Грязное рабочее дерево не блокирует работу скила.
-3. **Язык артефакта и общения** — русский. Имена технологий, фреймворков, паттернов (Clean Architecture, DDD, Bounded Context, Aggregate Root), пути файлов и идентификаторы в коде — в оригинале.
-4. **Артефакт описывает текущую архитектуру.** Без «раньше было X, теперь Y», «после миграции», «мы перешли с …». Только то, что истинно сейчас. Будущий читатель понимает архитектуру без знания истории её выбора.
-5. **При повторном запуске** `./workflow/ARCHITECTURE.md` **переписывается целиком**, не дополняется и не правится дельтами.
-6. **Перед записью** `./workflow/ARCHITECTURE.md` применяй правила секции «Сжатие финального артефакта».
-7. **`./workflow/PLAN.md` обновляется** в финале: закрой хвост о незафиксированной архитектуре, добавь новые хвосты, если выявлены.
-8. Рекомендуется встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте). Процедура многоэтапная с вложенным sequential-thinking, план снижает риск пропуска шагов.
-
-## Этапы
-
-### 1. Прочитать контекст проекта
-
-`Read` каждого файла, если существует:
-
-- `./workflow/PROJECT.md` — тех-стек, запуск, деплой. Главный источник языка, фреймворка, БД, ORM.
-- `./workflow/VISION.md` — идеологическое видение, масштаб и характер системы.
-- `./workflow/GOALS.md` — цели разработки, приоритеты (скорость / устойчивость / расширяемость).
-
-Ни одного файла нет → остановись и сообщи:
-
-```
-Нет ни одного из файлов: ./workflow/PROJECT.md, ./workflow/VISION.md,
-./workflow/GOALS.md. Запусти инициализацию проекта (например, /initialize)
-или зафиксируй описание проекта вручную.
-```
-
-Есть хотя бы один файл → продолжай.
-
-### 2. Поверхностный анализ кодовой базы
-
-Цель — подтвердить или дополнить тех-стек из `PROJECT.md` и понять текущую структуру папок. Поверхностно, без глубокого чтения кода.
-
-`Bash` команды:
-
-- `ls -la` корня — какие файлы манифестов есть.
-- `Read` манифестов, если есть: `package.json`, `go.mod`, `Cargo.toml`, `pyproject.toml`, `pom.xml`, `build.gradle`, `composer.json`, `Gemfile`, `mix.exs`, `*.csproj`, `pubspec.yaml`. Только верхний уровень — name, основные зависимости.
-- `ls src/` / `ls app/` / `ls lib/` / `ls internal/` / `ls cmd/` — структура папок верхнего уровня.
-
-Фиксируй в собственном контексте, без файлов:
-- язык + фреймворк,
-- БД и ORM (из зависимостей),
-- текущая структура папок,
-- размер проекта (по числу файлов в `src/`) — грубая оценка.
-
-### 3. Оценка и рекомендация (sequential-thinking)
-
-`Read ./.claude/skills/architecture/references/architecture-patterns.md` — справочник по 5 паттернам с decision matrix.
-
-Запусти `mcp__sequential-thinking__sequentialthinking`:
-
-- Размер команды и зрелость проекта (из `VISION.md` / `GOALS.md`, иначе оценка по коду)?
-- Сложность домена (из `VISION.md` — подобласти, сложные правила)?
-- Требования к масштабированию (из `GOALS.md`)?
-- Тех-стек (язык, фреймворк) — какие архитектуры органично поддерживает?
-- Существующая структура папок — намекает на какой-то паттерн?
-- По decision matrix — какой паттерн рекомендуется и почему?
-- Какие две альтернативы имеют смысл и почему они слабее?
-
-Результат — рекомендованный паттерн + 2–3 причины + 2–3 альтернативы с краткими причинами.
-
-### 4. Опрос пользователя (условный)
-
-Параметр задан → этап пропускается, используется указанный паттерн.
-
-Параметр не задан → задай вопрос через `AskUserQuestion`:
-
-```
-Какой архитектурный паттерн зафиксировать?
-
-Варианты (рекомендованный — первым):
-1. [Рекомендованный паттерн] (Recommended) — [почему подходит, 1 фраза]
-2. [Альтернатива 1] — [краткая причина]
-3. [Альтернатива 2] — [краткая причина]
-4. Layered Architecture — [«для простых случаев»]
-```
-
-Header: «Архитектура». Multi-select: false. Максимум 4 варианта.
-
-Выбран «Other» с произвольным ответом → если это один из 5 канонических паттернов, используй; иначе сообщи допустимый список и повтори вопрос.
-
-### 5. Проверить существующий ARCHITECTURE.md
-
-`Bash test -f ./workflow/ARCHITECTURE.md && echo EXISTS || echo NEW`
-
-`EXISTS` → задай вопрос через `AskUserQuestion`:
-
-```
-./workflow/ARCHITECTURE.md уже существует.
-
-1. Переписать целиком (Recommended) — текущая архитектура заменит старую полностью.
-2. Отменить — оставить существующий файл, выйти из скила.
-```
-
-Header: «Существующий файл». Выбор «отменить» → выйди, ничего не записывай, в `PLAN.md` ничего не меняй.
-
-`NEW` → продолжай без опроса.
-
-### 6. Адаптация шаблона под стек (sequential-thinking)
-
-Запусти `mcp__sequential-thinking__sequentialthinking` со входом:
-
-- выбранный паттерн (из этапа 3 или параметра),
-- тех-стек проекта (этап 2),
-- текущая структура папок,
-- секция выбранного паттерна из `references/architecture-patterns.md`.
-
-Прорабатывай:
-
-- какие папки добавятся, какие останутся (структура расширяет существующую, не заменяет),
-- как обозначить границы модулей / слоёв в этом языке (Go — пакеты `internal/...`, TypeScript — папки + явный `index.ts`, Rust — модули с `pub use`),
-- какие зависимости разрешены / запрещены между слоями,
-- какие 2 код-примера показать (типовая структура слоя + проверка зависимости),
-- какие 2–3 ключевых принципа выделить под этот проект,
-- какие 2–3 анти-паттерна актуальны для этого стека.
-
-Результат — заполненный шаблон артефакта.
-
-### 7. Применить сжатие финального артефакта
-
-Применить правила секции «Сжатие финального артефакта» к подготовленному тексту `ARCHITECTURE.md`. Не сжимай код-примеры, имена технологий, структуры папок и предупреждения.
-
-### 8. Записать ARCHITECTURE.md
-
-`Write ./workflow/ARCHITECTURE.md` — содержимое по шаблону из секции «Требования к артефакту».
-
-### 9. Обновить PLAN.md
-
-`Read ./workflow/PLAN.md` (если не существует — создай минимальный).
-
-Изменения:
-
-- В разделе хвостов / напоминаний найди пункт о незафиксированной архитектуре (если есть) и закрой / удали его.
-- Добавь короткую строку о фиксации архитектуры — ссылка на `./workflow/ARCHITECTURE.md` и имя выбранного паттерна.
-- На этапах 1–6 выявлены новые хвосты (нет `VISION.md`, `PROJECT.md` не описывает БД, в коде уже есть структура, противоречащая выбранному паттерну) → добавь их в раздел хвостов с ясной формулировкой, без правок описанных файлов.
-
-`Write` обновлённого `./workflow/PLAN.md`.
-
-## Требования к артефакту
-
-`./workflow/ARCHITECTURE.md` имеет фиксированную структуру:
-
-```markdown
-# Архитектура: [Название паттерна]
-
-## Обзор
-1–2 абзаца: что это за паттерн и почему он выбран для этого проекта.
-
-## Обоснование выбора
-- **Тип проекта:** [из VISION.md / PROJECT.md]
-- **Тех-стек:** [язык, фреймворк, БД]
-- **Ключевой фактор:** [главная причина выбора]
-
-## Структура папок
-\`\`\`
-[структура, адаптированная под язык и фреймворк]
-[расширяет существующую структуру, не заменяет её]
-\`\`\`
-
-## Правила зависимостей
-[Что от чего зависит. Границы модулей / слоёв.]
-
-- ✅ [разрешённое направление зависимости]
-- ❌ [запрещённое направление зависимости]
-
-## Коммуникация слоёв / модулей
-- [паттерн 1]
-- [паттерн 2]
-
-## Ключевые принципы
-1. [Принцип 1 — конкретно для этого проекта]
-2. [Принцип 2]
-3. [Принцип 3]
-
-## Примеры кода
-
-### [Заголовок примера 1]
-\`\`\`[язык проекта]
-[код в языке проекта]
-\`\`\`
-
-### [Заголовок примера 2]
-\`\`\`[язык проекта]
-[код, демонстрирующий правило зависимости]
-\`\`\`
-
-## Анти-паттерны
-- ❌ [Чего избегать в этой архитектуре]
-- ❌ [Типовая ошибка]
-```
-
-Правила содержания:
-
-- Все примеры кода — в языке и фреймворке проекта. Не TypeScript в Go-проекте.
-- Структура папок расширяет существующую, не заменяет её. Что есть — учитывается, недостающее — добавляется.
-- Фокус — правила, влияющие на повседневную разработку. Без академических отступлений.
-- Артефакт описывает текущую архитектуру. Без истории выбора, без «раньше / теперь», без сравнений с непринятыми паттернами.
-
-## Сжатие финального артефакта
-
-Правила применяются к тексту `./workflow/ARCHITECTURE.md` перед записью (этап 7).
-
-### Что сохраняется без изменений
-
-- Имена паттернов (Clean Architecture, Domain-Driven Design, Modular Monolith) — в оригинале.
-- Имена технологий, фреймворков, библиотек, БД, ORM.
-- Имена функций, типов, классов, констант, методов в код-примерах.
-- Все код-блоки (```bash, ```typescript, ```go) — содержимое не трогается.
-- Структура папок (имена папок и файлов, отступы).
-- Сообщения об ошибках в кавычках или код-форматировании.
-- Числа, версии, идентификаторы.
-- Заголовки секций артефакта (структура жёсткая).
-- Эмодзи-маркеры разрешённого / запрещённого (✅ / ❌).
-
-### Что убирается
-
-- **Филлер:** «как правило», «в общем», «в принципе», «по сути», «практически», «именно», «фактически», «собственно», «вообще говоря».
-- **Вежливость:** «пожалуйста», «было бы здорово», «давайте», «попробуем», «можешь использовать».
-- **Хеджирование:** «возможно», «может быть», «вероятно», «по идее», «скорее всего».
-- **Лишние обороты:** «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- **Дублирование** одной мысли в соседних предложениях — оставляй одно.
-- **Биографические упоминания**: «раньше», «мы перешли», «после рефакторинга» — удаляй.
-
-### Замена короткими синонимами
-
-Допустимо только если смысл сохраняется без потери нюанса:
-
-- «осуществить» → «сделать»
-- «реализовать решение для» → «решить»
-- «произвести анализ» → «проанализировать»
-- «выполнить запись» → «записать»
-- «является» → опустить или тире
-- «представляет собой» → «—» или «это»
-- «должен быть выполнен» → «выполняется» или «делай»
-
-Технические термины (Aggregate, Bounded Context, Repository, Use Case, Dependency Inversion) не заменяются и не переводятся.
-
-### Ultra-приёмы
-
-- **Стрелки причинности:** «X приводит к Y» → «X → Y».
-- **Один токен вместо двух**, если смысл сохраняется без двусмысленности.
-- **Фрагменты в перечислениях** вместо полных предложений, где утверждение атомарно («Domain → ничего. Application → Domain.»).
-
-### Где НЕ применять сжатие
-
-- В обзоре и обосновании выбора — нужны связные предложения, объясняющие почему этот паттерн.
-- В предупреждениях об анти-паттернах, где важна точная формулировка.
-- В условных конструкциях («если X — делай Y, иначе Z»), где фрагментация ломает логику.
-- В описании правил зависимостей, если короткая запись создаёт двусмысленность.
-- В код-примерах и структурах папок — никогда.
-
-Цель: компактный документ, по которому работают ежедневно. Не «как можно короче», а «без лишнего веса».
-
-## Обновление PLAN.md
-
-В конце каждого запуска (этап 9):
-
-- Закрой хвост о незафиксированной архитектуре (если был оставлен `initialize` или предыдущей сессией).
-- Добавь короткую отметку о фиксации архитектуры: имя паттерна + ссылка на `./workflow/ARCHITECTURE.md`.
-- Перечисли новые хвосты, если что-то выявлено и не входит в зону этого скила — `PROJECT.md` не описывает БД, `GOALS.md` отсутствует, в коде уже есть структура, противоречащая выбранному паттерну.
-
-Хвосты — для пользователя, скил их сам не закрывает.
-
-## Замечания
-
-- Скил не запускает тесты, не правит код, не создаёт фичи. Только архитектурный документ + отметка в плане.
-- Скил не вызывается автоматически как часть других процедур. Запускается явно по запросу пользователя или по хвосту в `PLAN.md`.
-- Ни `VISION.md`, ни `GOALS.md`, ни `PROJECT.md` не существуют → скил останавливается, не угадывает. Сначала инициализация контекста проекта.
-- Параметр-паттерн используется буквально. Пользователь указал `microservices` для проекта из 3 файлов → скил выполнит запрос, но в обосновании опишет несоответствие.
+# Architecture
+
+## Purpose
+
+This skill picks the project's architectural pattern and records it as the
+current canon in `./workflow/ARCHITECTURE.md`. It owns one concern: the
+architectural pattern, module boundaries, and the rules for where code goes.
+
+It runs after `initialize` and ideally after `roadmap`. Its canon is read by
+later stages — planning, plan improvement, task breakdown, implementation,
+testing, and documentation — so a feature-implementing agent can tell where to
+put new code, which boundaries not to cross, and which architectural style is
+current.
+
+The skill does not write product code, does not perform refactoring, does not
+create feature plans, and does not write tests. Architecture is a decision
+recorded as canon; executing that decision belongs to the feature stages.
+
+## Strict Rules
+
+- **No git operations.** Do not check status, diff, branch, commit, or push.
+  The working tree is expected to be dirty; the user manages git.
+- **`mcp__sequential-thinking__sequentialthinking` is required** at the
+  reasoning step (Step 3). Selecting a pattern and defining boundaries is
+  analytical work and must not be improvised.
+- **Canon, not history.** `ARCHITECTURE.md` describes the architecture that is
+  current — in the present tense. Never write decision logs, status lifecycles
+  (proposed / accepted / deprecated), or "previously X, now Y" comparisons. A
+  superseded rule is simply absent.
+- **Stay inside the boundary.** Do not edit product code, do not refactor, do
+  not write feature plans or tests. Follow-up work goes into `./workflow/PLAN.md`
+  as architectural tails only.
+- Write `ARCHITECTURE.md` and this skill's text in English-style precision but
+  in the user's working language for prose; keep pattern names, tool names,
+  paths, and code identifiers in their original spelling.
+- Use one term for one concept throughout the artifact.
+
+## Steps
+
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
+
+### 1. Gather context
+
+Read whichever of these exist:
+
+- `./workflow/PROJECT.md` — tech stack, run, deploy.
+- `./workflow/VISION.md` — ideological vision.
+- `./workflow/ROADMAP.md` — development goals.
+- `./workflow/ARCHITECTURE.md` or any other existing architecture document.
+
+Then scan the source tree: top-level directory names and nesting, where
+business logic lives, and how modules reference each other.
+
+If an input file is missing, continue with the remaining input — note in the
+reasoning step that the decision rests on a narrower base.
+
+### 2. Detect the pattern that is already in force
+
+Before choosing anything, determine which pattern the project de facto follows
+now, using these heuristics:
+
+- **Directory names and nesting** — `controllers/services/repositories` or
+  `domain/application/infrastructure` or `features/*` signal different styles.
+- **Dependency direction between layers** — does it flow inward toward the
+  domain, or do layers depend on each other freely?
+- **Where business logic sits** — inside controllers, inside dedicated domain
+  modules, or scattered.
+- **Explicit boundaries** — presence of ports, adapters, module manifests, or
+  package isolation.
+
+State plainly which pattern is acting now. This is the baseline for deciding
+whether to keep it or change it.
+
+### 3. Choose the canon with `mcp__sequential-thinking__sequentialthinking`
+
+Call `mcp__sequential-thinking__sequentialthinking` and work through:
+
+- **Compare candidates** from the catalog below against the project context —
+  scale, team size, and the goals in `ROADMAP.md`. A small project does not get
+  microservices because they exist; the pattern must match the context.
+- **Decide keep vs. change.** If the acting pattern fits, confirm it. If it does
+  not, select a better one and capture the rationale in 1–2 lines.
+- **Define module boundaries** — what may depend on what, and what must not.
+- **Define code placement** — where new code of each kind goes.
+- **Define cross-cutting concerns** — authentication, error handling, logging,
+  validation, configuration.
+- **Define naming and structure conventions.**
+
+A good boundary keeps related logic together and exposes a small surface;
+prefer that as the test of a boundary.
+
+**Pattern catalog** (pick by fit; do not include code samples):
+
+- **Layered** — clear horizontal layers; small-to-medium apps with simple flows.
+- **Modular monolith** — one deployable, strong internal module boundaries;
+  most growing products.
+- **Clean / Hexagonal** — domain isolated behind ports and adapters; logic-heavy
+  systems that must stay testable and framework-agnostic.
+- **DDD (strategic)** — bounded contexts and a shared language; large domains
+  with real business complexity.
+- **Microservices** — independently deployable services; large teams and
+  independent scaling needs only.
+- **Event-driven** — components communicate via events; asynchronous,
+  high-throughput, or loosely coupled flows.
+- **MVVM / MVU** — UI state patterns; client and front-end applications.
+- **Serverless** — functions as the unit of deployment; event-triggered,
+  spiky, or low-ops workloads.
+
+If a change of pattern would force refactoring of existing code, confirm the
+change with the user before writing it as canon, since it carries follow-up
+cost.
+
+### 4. Write `./workflow/ARCHITECTURE.md`
+
+Create or update `./workflow/ARCHITECTURE.md` per the section checklist in
+*Artifact Requirements*. Overwrite outdated content; do not append it as a
+revision history.
+
+### 5. Record architectural tails in `./workflow/PLAN.md`
+
+If the chosen canon requires follow-up work (e.g. a module must be moved to fit
+the new boundaries), append those items to `./workflow/PLAN.md` as architectural
+tails. Do not create feature plans and do not change feature statuses — this
+skill only adds architectural follow-up notes.
+
+## Artifact Requirements
+
+`./workflow/ARCHITECTURE.md` must answer every question a feature agent needs.
+Include these sections:
+
+- **Pattern** — the chosen pattern and a 1–2 line rationale tied to project
+  scale, team, and roadmap goals.
+- **Module boundaries and dependency rules** — what may depend on what; what is
+  forbidden.
+- **Code placement** — where new code of each kind goes.
+- **Cross-cutting concerns** — authentication, error handling, logging,
+  validation, configuration.
+- **Naming and structure conventions.**
+
+Diagrams (C4 / UML / Mermaid) are optional — add one only if it clarifies the
+canon; never make it a required step.
+
+Keep the document tight:
+
+- Write only the current state, in the present tense.
+- No biography of how the architecture evolved, no "previously / now", no
+  decision lifecycle.
+- No operational chatter — every line is a rule a feature agent can act on.
+
+## Updating PLAN.md
+
+At the end, touch `./workflow/PLAN.md` only to append architectural tails from
+Step 5 — follow-up work the chosen canon implies. Do not add feature entries and
+do not modify feature statuses; architecture is not a feature.
+
+## Notes
+
+- The skill works with partial input: if `PROJECT.md`, `VISION.md`, or
+  `ROADMAP.md` is missing, proceed on the available context and the source tree.
+- If `ARCHITECTURE.md` already exists, treat it as input, then rewrite it to the
+  current canon — do not keep stale rules side by side with new ones.

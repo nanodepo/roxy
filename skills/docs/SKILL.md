@@ -1,372 +1,227 @@
 ---
 name: docs
 description: >
-  Создаёт и поддерживает документацию проекта. Делает посадочный README.md
-  (~80–120 строк) и подробные страницы в ./docs/{concept,spec,tech}/.
-  Концепт — что и зачем; спецификация — требования и поведение; техническая —
-  как устроено и как работать. Используй когда пользователь говорит «создай
-  документацию», «напиши docs», «обнови docs», «сгенерируй README», «опиши
-  проект», «задокументируй фичи», `/docs`, либо когда в проекте появилась
-  стабильная функциональность и пора зафиксировать её для людей.
+  Creates or updates the project's user and technical documentation — the root
+  README.md and pages under ./docs/concept, ./docs/spec, ./docs/tech — recording
+  the current state of the product. Use when the user says "напиши документацию",
+  "обнови документацию", "задокументируй проект", "задокументируй фичу", or asks
+  to document implemented behavior.
 ---
 
-# Docs — генератор и хранитель документации проекта
+# Docs
 
-## Назначение
+## Purpose
 
-Создаёт и обновляет документацию проекта: посадочный `README.md` в корне + подробные страницы в `./docs/{concept,spec,tech}/`. Опирается на `./workflow/VISION.md`, `./workflow/GOALS.md`, `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md` если они есть, и на код проекта.
+`docs` writes and maintains the project's user and technical documentation. It
+records the current state of the product — what it is for, how it behaves, how
+it is built and run — so a reader understands the project without reading the
+history of how it was developed.
 
-Не пишет тесты, не правит код, не описывает регрессии и косметику.
+It runs late in the pipeline, normally after `test`, when behavior is already
+implemented and verified. It reads the project canon and feature artifacts but
+does not own them.
 
-## Жёсткие правила
+It owns the root `README.md` and the pages under `./docs/concept/`,
+`./docs/spec/`, and `./docs/tech/`. It does not write an audit report, does not
+change product code, does not write tests, does not rewrite a feature's
+`./workflow/` artifacts, and performs no git operations. Recording mismatches as
+recommendations belongs to `audit`; `docs` fixes documentation and only notes
+missing documents as docs tails.
 
-1. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`. Не делай ветки, не предлагай коммиты. Состояние рабочего дерева — забота пользователя.
-2. **Язык пользователя** во всех артефактах и общении. Имена файлов, путей, команд, конфигов, переменных окружения, API-эндпоинтов, классов и функций — в оригинале.
-3. **`mcp__sequential-thinking__sequentialthinking`** на этапах 1, 3, 5. Обязательно.
-4. **Чтение `./workflow/...` — попытка обязательна, отсутствие — не блокер.** Файлов нет → предупреди пользователя о снижении качества документации; продолжай с кодом и манифестами пакетов как основным источником.
-5. **Никаких следов прошлого в документации.** Не пиши «раньше X, теперь Y», «после рефакторинга», «исправлено в версии Z». Документация описывает текущее состояние.
-6. **Канонический формат.** `README.md` + `./docs/{concept,spec,tech}/` — единственная каноническая документация. Остальные `*.md` в проекте проверяются на консолидацию (этап 2).
-7. **Сжатие финального артефакта** — применять правила секции «## Сжатие финального артефакта» к каждому `.md` перед записью.
+## Parameters
 
-## Принципы документирования
-
-- **Документация описывает систему сейчас.** Без биографии («раньше», «теперь», «после рефакторинга»), без changelog-фрагментов внутри страниц, без «исправлено в версии Z». История проекта живёт в git и в `./workflow/archive/`, не в `docs/`.
-- **README — посадочная страница, не руководство.** ~80–120 строк. Первое впечатление, установка, пример, ссылки на детали. Длинные разделы — в `./docs/`.
-- **Каждая страница `./docs/*` самодостаточна.** Один топик — одна страница. Пользователь читает одну страницу — получает полную картину по теме.
-- **Без дублирования.** Информация живёт в одном месте. README ссылается на `./docs/`, не повторяет. Исключение: команда установки уместна и в README, и в `docs/tech/getting-started.md`.
-- **Scannable, не «читабельная».** Таблицы, списки, код-блоки. Короткие абзацы (макс 3–4 строки). Заголовки, по которым тема находится за 5 секунд.
-- **Переписывай, не дописывай.** Страница устаревает → перепиши файл целиком, не добавляй «обновлённый» раздел поверх старого.
-- **Чистая передача.** После работы скила документация описывает только текущую истину. Никаких следов промежуточных версий, дельт, заметок «обновлено на …».
-
-## Структура артефактов
+The `args` string is optional:
 
 ```
-./
-├── README.md                          # посадочная страница проекта
-└── docs/
-    ├── concept/                       # что и зачем
-    │   ├── overview.md
-    │   ├── audience.md (опционально)
-    │   └── principles.md (опционально)
-    ├── spec/                          # требования и поведение
-    │   ├── behavior.md
-    │   ├── user-stories.md (опционально)
-    │   └── constraints.md (опционально)
-    └── tech/                          # как устроено и как работать
-        ├── getting-started.md
-        ├── architecture.md
-        ├── configuration.md
-        ├── deployment.md
-        ├── api.md (если есть API)
-        ├── testing.md (если есть тесты)
-        └── security.md (если применимо)
+[<feature-slug>]
 ```
 
-Папки `concept/`, `spec/`, `tech/` создаются только под нужные страницы. Пустые папки не создаются.
+- `<feature-slug>` — the slug of a feature under `./workflow/features/{slug}/`.
+  When given, the skill runs in feature-update mode: it documents the behavior
+  of that implemented feature.
+- No argument → the skill determines the mode from the project state (see
+  Step 1).
+
+## Strict Rules
+
+- **No git operations.** Do not check status, diff, branch, commit, or push. The
+  working tree is expected to be dirty; the user manages git.
+- **`mcp__sequential-thinking__sequentialthinking` is required** at the analysis
+  step (Step 5). Deciding which documents to create or update, for which reader,
+  and with what content is analytical work and must not be improvised.
+- **Current state, not history.** Every document describes the product as it is
+  now, in the present tense. Never write changelogs, release notes, version
+  history, "previously X, now Y" comparisons, or breaking-change markers. A
+  superseded statement is simply replaced.
+- **Stay inside the boundary.** Do not edit product code, do not write tests, do
+  not produce an audit report, and do not rewrite a feature's `feature.md`,
+  `plan.md`, `design.md`, or `tests.md`. The only allowed write to
+  `./workflow/PLAN.md` is appending docs tails.
+- Write this skill's text in English; write the documentation itself in the
+  project's working language. Keep tool names, paths, commands, and code
+  identifiers in their original spelling.
+- Use one term for one concept across all documents.
+
+## Steps
+
+This is a multi-step procedure with a nested analytical call. At the start, open
+the agent's task planning mode (todo list / task plan, whichever is available)
+with the steps below and close them one by one.
+
+### 1. Parse args and determine the mode
+
+Split the `args` string by spaces.
+
+- One token → treat it as `<feature-slug>`. Confirm
+  `./workflow/features/{slug}/feature.md` exists. If it does not, stop and ask
+  the user for the correct slug. Run in **feature-update mode**.
+- No token → inspect the project: does a root `README.md` exist, does `./docs/`
+  exist with content?
+  - No documentation at all → run in **from-scratch mode**: document the whole
+    project.
+  - Documentation exists → the intent is ambiguous. Ask the user one question:
+    document the whole project, or update documentation for one feature (and
+    which). Run the chosen mode.
+
+### 2. Read project context
+
+Read whichever of these exist; skip silently if missing:
+
+- `./workflow/PROJECT.md` — tech stack, run, deploy.
+- `./workflow/VISION.md` — ideological vision.
+- `./workflow/ROADMAP.md` — development goals.
+
+In feature-update mode, also read from `./workflow/features/{slug}/`:
+
+- `feature.md` — the feature description (required for this mode).
+- `plan.md`, `design.md`, `tests.md` — read whichever exist.
+
+### 3. Scan the code and the current documentation
+
+Read the implemented code that the documentation must describe — the modules,
+entry points, commands, and behavior in scope. Then read the current
+documentation: the root `README.md` and the pages under `./docs/concept/`,
+`./docs/spec/`, and `./docs/tech/`.
+
+The code is the source of truth. Feature artifacts state intent; the code states
+what the product actually does.
+
+### 4. Reconcile existing documentation with the live code
+
+For every document that already exists, check its statements against the live
+code: names, signatures, behavior, commands, configuration. Mark each statement
+as confirmed or as a mismatch to fix. Preserve the existing structure of each
+document — plan to correct mismatches in place, not to rewrite the document from
+nothing. In from-scratch mode with no existing documentation, skip this step.
+
+### 5. Analyze and plan the documents (sequential-thinking)
+
+Call `mcp__sequential-thinking__sequentialthinking` to work through:
+
+- **Which documents to create or update**, and where each belongs across the
+  three folders by what it answers:
+  - `./docs/concept/` — explanation: the purpose, ideas, and value of the
+    product (why it exists);
+  - `./docs/spec/` — reference: behavior and contracts a reader consults for a
+    precise answer (what it does);
+  - `./docs/tech/` — structure and operation: how the project is built and how
+    to work with it (how it is built and how to run it).
+  Do not split a single document across explanation, reference, and instruction.
+  Do not introduce the full four-quadrant documentation taxonomy on top of these
+  three folders.
+- **The reader and task of each document** before writing it: a concept page
+  serves a reader who wants the "why"; a spec page serves a reader hunting a
+  precise answer about behavior; a tech page serves a reader deploying and
+  extending the project. Content is chosen for that task.
+- **The root `README.md`** — what it must cover (see Artifact Requirements).
+- **Mismatches from Step 4** — which statements to correct.
+- **Gaps** — documents the project needs but the current material cannot fully
+  support; these become docs tails.
 
-## Этапы
+Fix the result as a structured documentation plan.
 
-### Этап 1. Прочитать контекст проекта (sequential-thinking)
+### 6. Write the documentation
 
-Через `mcp__sequential-thinking__sequentialthinking` собери контекст:
+Following the plan from Step 5:
 
-1. **`./workflow/`:**
-   - `Read ./workflow/VISION.md` — идеологическое видение (если есть).
-   - `Read ./workflow/GOALS.md` — цели разработки (если есть).
-   - `Read ./workflow/PROJECT.md` — тех-стек, запуск, деплой (если есть).
-   - `Read ./workflow/ARCHITECTURE.md` — архитектурный канон (если есть).
-   - Любой из четырёх отсутствует → запомни и отрази в `./workflow/PLAN.md` на этапе 6 как хвост.
+- Create or update the root `README.md` against the section checklist in
+  *Artifact Requirements*.
+- Create or update the pages under `./docs/concept/`, `./docs/spec/`, and
+  `./docs/tech/`, each addressed to the reader and task fixed in Step 5.
+- When updating an existing document, keep its structure and correct mismatches
+  in place; do not rewrite it from scratch.
+- Write every document as the current state — no history, no deltas, no
+  temporary notes.
 
-2. **Манифесты пакетов:**
-   - `Read` все найденные: `package.json`, `composer.json`, `pyproject.toml`, `requirements.txt`, `go.mod`, `Cargo.toml`, `Gemfile`, `pom.xml`, `build.gradle`.
-   - Извлеки: язык, фреймворк, основные зависимости, команды (scripts, tasks).
+### 7. Self-check before finishing
 
-3. **Код проекта:**
-   - `Bash ls -la` — структура верхнего уровня.
-   - `Glob` под язык проекта — основные модули.
-   - `Glob **/*.{Dockerfile,docker-compose.yml,Makefile,justfile,Procfile}` — деплой и запуск.
+Verify every created or updated document:
 
-4. **Существующая документация:**
-   - `Bash test -f README.md` — есть ли README.
-   - `Bash test -d docs` — есть ли папка docs.
-   - `Glob *.md` в корне — рассеянные markdown (исключи `README.md`, `CHANGELOG.md`, `LICENSE.md`, `CODE_OF_CONDUCT.md`).
-   - `Glob docs/**/*.md` — содержимое существующей папки, если есть.
+- **Factual accuracy** — code, names, and behavior match the implementation.
+- **Clarity** — the language is plain and unambiguous.
+- **Consistent terminology** — one term per concept across all documents.
+- **No duplication** — a fact lives in one document; others link to it rather
+  than restating it.
+- **Self-contained present** — the document reads on its own, with no project
+  history or external explanation.
 
-5. **Определи состояние:**
-   - **Чистое:** ни README, ни `docs/` — полная генерация.
-   - **Частичное:** README есть, `docs/` нет — расширение в три папки.
-   - **Полное:** оба есть — audit + улучшения.
+### 8. Append docs tails to `./workflow/PLAN.md`
 
-Зафиксируй итог: что есть, что отсутствует, какие хвосты в `./workflow/` обнаружены, какие рассеянные `*.md` найдены.
+Append to `./workflow/PLAN.md` only docs tails — documents the project still
+needs that the current material could not support. Do not add feature entries
+and do not change feature statuses. If `./workflow/PLAN.md` is missing, list the
+gaps in the report instead.
 
-### Этап 2. Спросить пользователя про набор страниц
+### 9. Report
 
-Через `AskUserQuestion` задавай по одному связанному блоку. Зависимые блоки — последовательно.
+Give a short report: the mode used, the documents created or updated, the
+mismatches corrected, and any docs tails appended to `./workflow/PLAN.md`.
 
-**Блок 1 — состояние документации (только если состояние «Полное»):**
+## Artifact Requirements
 
-«Документация уже есть. Что делаем?»
-- Audit и улучшения (Recommended) — пройти по существующим страницам, исправить расхождения, дописать пропущенное
-- Переписать с нуля — удалить и сгенерировать заново
-- Только audit без правок — собрать отчёт о расхождениях
+### Root `README.md`
 
-**Блок 2 — набор страниц `docs/concept/`** (multiSelect):
+The root `README.md` covers, at minimum:
 
-«Какие концептуальные страницы создать?»
-- `overview.md` (Recommended) — что это за проект, для кого, какую проблему решает
-- `audience.md` — целевая аудитория и сценарии использования
-- `principles.md` — ключевые принципы и решения проекта
+- the project name;
+- a short description of what the project is for;
+- a quick start or usage example;
+- configuration and how to run.
 
-**Блок 3 — набор страниц `docs/spec/`** (multiSelect):
+Keep it readable as the project's front door — concise, current, and accurate.
 
-«Какие спецификационные страницы создать?»
-- `behavior.md` (Recommended) — поведение системы, основные сценарии
-- `user-stories.md` — user stories
-- `constraints.md` — ограничения и инварианты
+### `./docs/` pages
 
-**Блок 4 — набор страниц `docs/tech/`** (multiSelect):
+- `./docs/concept/*.md` — explanation: purpose, core ideas, the value the
+  product delivers.
+- `./docs/spec/*.md` — reference: behavior and contracts, precise and lookup-
+  oriented.
+- `./docs/tech/*.md` — structure and operation: how the project is built, how to
+  set it up, run it, and extend it.
 
-«Какие технические страницы создать?»
-- `getting-started.md` (Recommended) — установка, первый запуск
-- `architecture.md` (Recommended) — структура и паттерны
-- `configuration.md` — переменные окружения, конфиги
-- `deployment.md` — сборка и деплой
-- `api.md` — эндпоинты (если у проекта API)
-- `testing.md` — как запускать тесты (если есть тесты)
-- `security.md` — авторизация и доступы
+Format rules for every document:
 
-**Блок 5 — рассеянные markdown в корне (только если найдены):**
+- Write only the current state, in the present tense.
+- No change history, no release notes, no version markers, no "previously /
+  now" comparisons.
+- No operational chatter — every line helps the reader understand the project.
+- A diagram is optional — add one only when it clarifies the text; never make it
+  a required element.
 
-Перечисли найденные файлы. «Консолидировать эти файлы в `./docs/`?»
-- Применить все предложения (Recommended)
-- Выбрать по одному
-- Оставить как есть
+## Updating PLAN.md
 
-«Применить все» / «Выбрать по одному» → определи целевое размещение:
+At the end, write to `./workflow/PLAN.md` only docs tails — missing documents the
+project still needs. Do not add feature entries and do not modify feature
+statuses; documentation is not a feature.
 
-| Корневой файл | Целевое расположение | Действие |
-|---------------|----------------------|----------|
-| `CONTRIBUTING.md` | `docs/tech/contributing.md` | Перенос |
-| `ARCHITECTURE.md` | `docs/tech/architecture.md` | Перенос (merge если уже есть) |
-| `DEPLOYMENT.md` | `docs/tech/deployment.md` | Перенос |
-| `SETUP.md` | `docs/tech/getting-started.md` | Merge |
-| `DEVELOPMENT.md` | `docs/tech/contributing.md` | Merge |
-| `API.md` | `docs/tech/api.md` | Перенос |
-| `TESTING.md` | `docs/tech/testing.md` | Перенос |
-| `SECURITY.md` | `docs/tech/security.md` | Перенос |
+## Notes
 
-Файлы стандартной конвенции остаются в корне: `README.md`, `CHANGELOG.md`, `LICENSE.md`, `LICENSE`, `CODE_OF_CONDUCT.md`.
-
-### Этап 3. Сгенерировать страницы (sequential-thinking)
-
-Через `mcp__sequential-thinking__sequentialthinking` для каждой выбранной страницы:
-
-1. Определи структуру (заголовки) из контекста этапа 1.
-2. Заполни конкретикой из кода и манифестов — не выдумывай.
-3. Применяй принципы из секции «Принципы документирования».
-
-**Формат каждой страницы `./docs/{concept,spec,tech}/*.md`:**
-
-```markdown
-[← Предыдущая](previous.md) · [Назад к README](../../README.md) · [Следующая →](next.md)
-
-# Заголовок страницы
-
-Содержимое, организованное подзаголовками.
-
-## See Also
-
-- [Связанная страница 1](../other/page.md) — короткое описание
-- [Связанная страница 2](sibling.md) — короткое описание
-```
-
-Правила навигации:
-- Порядок страниц: `concept/` → `spec/` → `tech/`, внутри категории — по таблице README.
-- Первая страница (`docs/concept/overview.md` или первая выбранная) — без `[← Предыдущая]`.
-- Последняя страница — без `[Следующая →]`.
-- Ссылка на README из `docs/{category}/*.md` — `../../README.md`.
-- Ссылка между категориями — относительный путь: `../tech/architecture.md`.
-- Ссылка внутри категории — имя файла: `architecture.md`.
-
-**README.md** — структура (цель: 80–120 строк):
-
-```markdown
-# Название проекта
-
-> Однострочная аннотация — что это.
-
-2–3 предложения: что делает, зачем существует.
-
-## Быстрый старт
-
-\`\`\`bash
-# 1–3 команды установки и запуска (реальные, из манифеста)
-\`\`\`
-
-## Ключевые возможности
-
-- **Возможность 1** — короткое описание
-- **Возможность 2** — короткое описание
-- **Возможность 3** — короткое описание
-
-## Пример
-
-\`\`\`
-# Реальный пример использования — момент «я это хочу»
-\`\`\`
-
----
-
-## Документация
-
-| Раздел | Описание |
-|--------|----------|
-| [Обзор](docs/concept/overview.md) | Что это и зачем |
-| [Поведение](docs/spec/behavior.md) | Как работает |
-| [Установка](docs/tech/getting-started.md) | Первый запуск |
-| [Архитектура](docs/tech/architecture.md) | Структура и паттерны |
-
-(Перечисли все сгенерированные страницы в логическом порядке: concept → spec → tech.)
-
-## Лицензия
-
-(Из проекта, если найдена.)
-```
-
-Правила README:
-- Никаких длинных описаний, никакой полной API-ссылки, никаких деталей конфигурации.
-- Команды установки — реальные, из манифеста проекта.
-- Пример — реальный, не «hello world».
-- В проекте есть логотип или бейджи → сохрани в верху страницы.
-
-**Контент по категориям:**
-
-`docs/concept/overview.md` — что это, для кого, какую проблему решает.
-`docs/concept/audience.md` — целевая аудитория, сценарии использования.
-`docs/concept/principles.md` — ключевые принципы и архитектурные решения (без истории «как пришли к ним»).
-
-`docs/spec/behavior.md` — основные сценарии, как система ведёт себя в норме и на границах.
-`docs/spec/user-stories.md` — user stories, сгруппированные по ролям.
-`docs/spec/constraints.md` — ограничения, инварианты, нефункциональные требования.
-
-`docs/tech/getting-started.md` — prerequisites, установка, первый запуск, как проверить что работает.
-`docs/tech/architecture.md` — структура папок, ключевые паттерны, поток данных.
-`docs/tech/configuration.md` — переменные окружения с описаниями и дефолтами, конфиг-файлы, feature flags.
-`docs/tech/deployment.md` — сборка, окружения, CI/CD, health checks.
-`docs/tech/api.md` — base URL, аутентификация, эндпоинты, примеры запросов/ответов, коды ошибок.
-`docs/tech/testing.md` — как запускать тесты, структура тестов.
-`docs/tech/security.md` — авторизация, доступы, известные ограничения безопасности.
-
-### Этап 4. Применить сжатие
-
-Перед записью каждого `.md` (README + `docs/{concept,spec,tech}/*`) — применить правила секции «## Сжатие финального артефакта» (ниже).
-
-### Этап 5. Финальный review (sequential-thinking)
-
-Через `mcp__sequential-thinking__sequentialthinking` пройди по чеклистам из `references/review-checklists.md`. Два набора: технический (структура, ссылки) и читабельность (глазами нового пользователя). Найденные проблемы — исправь до показа результата.
-
-Покажи пользователю компактную таблицу с ✅/❌/⚠️ по каждому пункту чеклиста.
-
-### Этап 6. Записать файлы и обновить `./workflow/PLAN.md`
-
-1. `Bash mkdir -p docs/concept docs/spec docs/tech` (только под создаваемые папки; пустые не создавай).
-2. `Write README.md` — сжатая версия.
-3. `Write docs/concept/*.md`, `docs/spec/*.md`, `docs/tech/*.md` — каждый сжатый.
-4. Файлы, согласованные на этапе 2 для консолидации:
-   - Создай в `docs/tech/` копию с навигацией и адаптированным форматом.
-   - **Не удаляй** оригиналы из корня — пользователь решает (отметь в финальном отчёте).
-5. `./workflow/PLAN.md`:
-   - Файл есть → найди раздел `## Хвосты` (или создай в конце).
-   - Обнаружены отсутствующие `./workflow/VISION.md` / `GOALS.md` / `PROJECT.md` / `ARCHITECTURE.md` → добавь по строке: «Отсутствует `./workflow/<NAME>.md` — документация сгенерирована без этого источника».
-   - Рассеянные `*.md` в корне не консолидированы → добавь хвост: «Рассеянные `*.md` в корне не консолидированы: ...».
-   - Консолидированы, но оригиналы остались → добавь хвост: «Оригиналы консолидированных файлов остались в корне: ...».
-   - Нет хвостов — `PLAN.md` не трогать.
-   - `PLAN.md` отсутствует + есть хвосты → создай с минимальной структурой:
-
-```markdown
-# План проекта
-
-## Фичи
-
-## Хвосты
-
-- Отсутствует `./workflow/VISION.md` — документация сгенерирована без этого источника.
-```
-
-### Этап 7. Краткий отчёт
-
-В ответе пользователю:
-- Какие файлы созданы / обновлены (списком).
-- Какие страницы пропущены и почему.
-- Какие хвосты записаны в `./workflow/PLAN.md`.
-- Что делать дальше (запустить `initialize` / `architecture` если нужных артефактов не было).
-
-## Сжатие финального артефакта
-
-Применять к каждому `.md` перед записью.
-
-### Что сохраняется без изменений
-
-- **Frontmatter** в шапке файла (если есть) — целиком.
-- **Имена**: команд, путей, переменных окружения, файлов, API-эндпоинтов, конфиг-ключей, классов, функций, типов.
-- **Код-блоки** ```` ```bash ````, ```` ```yaml ````, ```` ```json ````, ```` ```http ```` и др. — содержимое не трогается.
-- **Сообщения об ошибках** в кавычках или код-форматировании.
-- **Структурные элементы**: заголовки разделов, таблицы (Documentation table в README, таблицы переменных окружения, таблицы эндпоинтов), prev/next навигация, See Also секции.
-- **Числа, версии, ID**: версии runtime, номера портов, размеры лимитов.
-- **Гиперссылки**: текст и target.
-
-### Что убирается
-
-- **Филлер**: «как правило», «в общем», «в принципе», «по сути», «в действительности», «практически», «именно», «прямо», «фактически», «непосредственно», «собственно».
-- **Вежливость**: «пожалуйста», «было бы здорово», «давайте», «попробуем», «можешь сделать», «не мог бы ты».
-- **Хеджирование**: «возможно», «может быть», «вероятно», «как-то так», «по идее», «скорее всего», «в целом».
-- **Лишние обороты**: «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- **Дублирование** одной мысли в соседних предложениях — оставь одну.
-
-### Замена короткими синонимами
-
-Заменяй, если короткий синоним сохраняет смысл:
-
-- «осуществить» → «сделать»
-- «реализовать решение для» → «решить»
-- «произвести анализ» → «проанализировать»
-- «выполнить запись» → «записать»
-- «является» → опустить или тире
-- «представляет собой» → «—» или «это»
-- «должен быть выполнен» → «выполняется» или «делай»
-
-Технические термины не заменяются.
-
-### Ultra-приёмы
-
-- **Стрелки для причинности**: «X приводит к Y» → «X → Y»; «Y вытекает из X» → «X → Y».
-- **Один токен вместо двух**, если смысл сохраняется и нет двусмысленности.
-- **Сокращения общеизвестного** — только если встречаются в исходном русскоязычном контексте проекта («БД», «конфиг», «UI»). Не изобретай новых; не вводи английские аббревиатуры в русский текст без оснований.
-- **Фрагменты-перечисления** вместо полных предложений в списках, где каждое утверждение атомарно.
-
-### Где НЕ применять сжатие
-
-Полные предложения, без жертв ради токенов:
-
-- Шаги установки и запуска — точный порядок, без двусмысленности.
-- Описания опасных операций (миграции, удаление данных, перезапись конфигов).
-- Условные конструкции «если X — делай Y, иначе Z».
-- Примеры использования — должны читаться естественно.
-- Описания инвариантов и ограничений безопасности.
-- Места, где сжатие создаёт двусмысленность.
-- Tagline в README — лицо проекта, должно звучать.
-
-### Что точно НЕ делается
-
-- Не переводить слова на английский ради краткости.
-- Не сжимать примеры кода и команд.
-- Не сокращать имена файлов и пути.
-- Не выкидывать навигационные секции (See Also, prev/next).
-
-## Замечания
-
-- Папок `concept/`, `spec/`, `tech/` создаётся столько, сколько нужно. Не выбрана ни одна страница для `docs/spec/` → папка не создаётся.
-- Файлы стандартной конвенции в корне (`README.md`, `CHANGELOG.md`, `LICENSE`, `LICENSE.md`, `CODE_OF_CONDUCT.md`) — не консолидируются.
-- HTML-генерация в скил не входит. Спрашивает пользователь → посоветуй инструменты (mkdocs, docusaurus и т.п.), но не делай.
-- При обновлении существующих страниц — переписывай файл целиком. Не оставляй «дельта-заметок» вида «обновлено на 2026-05-15» или «изменения с предыдущей версии».
-- Встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте) полезен из-за длинной процедуры с ветвлениями; используй по своему усмотрению.
+- The skill works with partial input: if `PROJECT.md`, `VISION.md`, or
+  `ROADMAP.md` is missing, proceed on the available context and the code.
+- When existing documentation contradicts the live code, the code wins — correct
+  the document.
+- In feature-update mode, the feature artifacts describe intent; always confirm
+  the documented behavior against the implemented code.
+- The skill follows these steps literally and does not shorten them. The
+  documentation it produces must be readable without knowing how or when it was
+  written.

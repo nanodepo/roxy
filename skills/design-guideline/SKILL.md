@@ -1,290 +1,197 @@
 ---
 name: design-guideline
-description: Извлекает визуальный язык проекта — цвета, типографику, отступы, компоненты — и фиксирует его в `./workflow/DESIGN.md`. Используй когда пользователь говорит «зафиксируй дизайн», «design guideline», «опиши стиль проекта», «создай DESIGN.md».
-argument-hint: "[url | описание желаемого стиля]"
+description: >
+  Extracts and records the project's visual canon — brand, color, typography,
+  layout, components, states, accessibility, and UI conventions — into
+  ./workflow/DESIGN.md. Use when the user says "зафиксируй дизайн",
+  "опиши дизайн проекта", "извлеки визуальный язык", "создай design guideline",
+  or asks where the project's design rules live.
 ---
 
-# design-guideline — Зафиксировать визуальный язык проекта
+# Design Guideline
+
+## Purpose
+
+`design-guideline` establishes the project's visual canon. It extracts the visual language from the existing UI when one exists, asks the user about visual direction when the UI is absent or thin, and records everything as `./workflow/DESIGN.md`. This skill is the sole owner of `./workflow/DESIGN.md`.
+
+It operates at the project level, after `initialize` and usually after `roadmap`. Its output is read by the feature-level `design` step and by `feature`, `planning`, `implement`, and `docs` whenever a task touches UI.
+
+It does not write a feature-level `design.md`, does not implement UI, does not create a feature plan, does not write tests, does not generate token files or a component library, and performs no git operations.
+
+## Strict Rules
+
+- No git operations: do not check status, create branches, commit, or push. The working tree is expected to be dirty.
+- Call `mcp__sequential-thinking__sequentialthinking` during the analysis step (step 4): synthesizing extracted UI signals into a canon is analytical work and must not be skipped.
+- `./workflow/DESIGN.md` is the only file this skill creates or rewrites. The only allowed write to `./workflow/PLAN.md` is appending design tails.
+- Write `./workflow/DESIGN.md` as the current canon: no creation history, no "previously X, now Y" deltas, no temporary notes, no comparisons to earlier versions.
+- Record observable, enforceable rules — not taste slogans. Separate what is confirmed from what still needs a decision.
+- Do not generate UI code, `tokens.json`/`tokens.css` or other token files, or a component library. Describe components at the level of project conventions, not implementation.
+
+## Steps
+
+This is a multi-step procedure with user questions and a nested analytical call. At the start, open a task planning mode list (todo list / task plan, whichever is available) with the steps below and close them one by one.
+
+### 1. Read project context
+
+Read these files if they exist; skip silently if missing:
+
+- `./workflow/PROJECT.md` — tech stack, frameworks, run/deploy.
+- `./workflow/VISION.md` — ideological direction.
+- `./workflow/ROADMAP.md` — development goals.
+
+These set the audience, purpose, and platform constraints the visual canon must serve.
+
+### 2. Discover visual sources
+
+Search the codebase for existing visual material before asking the user anything:
+
+- frontend code and components;
+- CSS, Tailwind config, `@theme` blocks, shadcn/theme config, design tokens;
+- a design system or UI library used by the project;
+- Storybook, UI kit, screenshots, or other visual references.
+
+A project may already have a design system, component set, or tokens — find and reuse them rather than inventing a parallel canon.
+
+### 3. Extract observable signals
+
+From the discovered sources, extract only what is actually observable:
+
+- colors, typography, spacing, radius, shadows;
+- layout, grid/container, breakpoints, density;
+- components, variants, states (including empty/loading/error);
+- interaction states (hover/focus/active/disabled), motion;
+- iconography, imagery, data visualization, forms, navigation.
+
+Treat one page or one screen as a sample, not proof of the whole design system. Do not promote a single observed value into a project-wide rule without evidence across the UI.
+
+### 4. Analyze and synthesize (sequential-thinking)
+
+Call `mcp__sequential-thinking__sequentialthinking` to:
+
+- separate confirmed canon from assumptions and from items that still need a decision;
+- group colors, typography, components, and visual assets into distinct concerns rather than one undifferentiated list;
+- define the product context — purpose, audience, tone/character, platform constraints, differentiation — that the visual direction must express;
+- frame color and typography by role and usage limits, not by raw values alone;
+- apply token layering where it clarifies the canon: primitive (raw values like `#111827`, `16px`, `Inter`), semantic (roles like `text-primary`, `surface-muted`, `accent`), component (use in components like `button-bg`, `card-border`);
+- decide whether reduced motion, high contrast, and dark mode are relevant project decisions;
+- list anti-generic criteria: avoid thoughtless SaaS palettes, default hero compositions, random gradients, and decorative effects with no function;
+- collect every gap that the existing material cannot answer.
+
+### 5. Ask the user (only if needed)
+
+If the UI is absent or the data is too thin to fix a canon, ask the user short, focused questions about purpose, audience, tone and character, platform constraints, brand direction, and differentiation. Group independent questions into one block; for each, offer a recommended option first with a brief rationale. If the existing UI fully answers the canon, skip this step.
+
+### 6. Write `./workflow/DESIGN.md`
+
+Create or update `./workflow/DESIGN.md` following the structure in **Artifact Requirements**. Record the current canon only — no history, no deltas.
+
+### 7. Run the quality checklist
+
+Before finishing, verify the document against this checklist:
+
+- hierarchy, consistency, accessibility, and responsive behavior are all addressed;
+- critical requirements are distinguishable from taste-level recommendations;
+- colors and typography are described by role and usage limits, not hex values alone;
+- components are described as project conventions, without implementation detail;
+- accessibility and responsive behavior are concrete, not hidden in general phrasing;
+- the document reads on its own, without project history or external explanation.
+
+### 8. Append design tails to `./workflow/PLAN.md`
+
+Add to `./workflow/PLAN.md` only the design tails that block a unified project canon — unresolved visual decisions that need follow-up. Do not record feature statuses or anything else. If `./workflow/PLAN.md` is missing, note the unresolved decisions in the "Открытые решения" section of `DESIGN.md` instead.
+
+### 9. Report
+
+Give a short report: the path to `./workflow/DESIGN.md`, whether the canon was extracted from existing UI or based on user answers, the main visual decisions fixed, and any design tails added to `./workflow/PLAN.md`.
+
+## Artifact Requirements
+
+`./workflow/DESIGN.md` uses this structure. Omit a section only when it genuinely does not apply to the project.
+
+```md
+# DESIGN.md
 
 ## Назначение
+Единый визуальный канон проекта.
 
-Создаёт каноническое описание визуального языка проекта в `./workflow/DESIGN.md`: тему и атмосферу, цветовые токены с ролями, типографику, шкалу отступов, поверхности, компоненты с их состояниями и правила консистентности.
+## Контекст продукта
+- Аудитория
+- Задачи интерфейса
+- Тон и характер
+- Ограничения платформы
 
-Скил работает в двух режимах:
+## Визуальное направление
+- Ключевая эстетика
+- Что интерфейс должен транслировать
+- Чего избегать
 
-- **extract** — в проекте уже есть дизайн (конфиг дизайн-системы, CSS-переменные, UI-kit, готовые компоненты). Скил вытаскивает фактический визуальный язык из кода и приводит его к канону.
-- **опрос** — дизайна ещё нет. Скил собирает основу через `AskUserQuestion`, не выдумывая систему молча.
+## Бренд
+- Название/логотип, если есть
+- Голос интерфейса
+- Допустимые визуальные ассоциации
 
-Скил **не** пишет CSS, токены или компоненты, **не** правит код, **не** трогает фичи и другие workflow-файлы кроме `DESIGN.md` и `PLAN.md`. Опирается на текущее состояние проекта — без истории редизайнов.
-
-`design-guideline` фиксирует визуальный язык **всего проекта** один раз. Применение этого языка к конкретной фиче — задача отдельного скила `design`.
-
-## Параметры
-
-Опциональный позиционный аргумент:
-
-```
-[url | короткое описание желаемого визуального стиля]
-```
-
-- Пустой → режим определяется автоматически (см. этап 2), опрос идёт без предзаполнений.
-- Непустой → seed для режима опроса: используется при формулировке рекомендованных вариантов и как референс стиля. На режим **extract** не влияет — там источник истины код.
-
-## Жёсткие правила
-
-1. **`mcp__sequential-thinking__sequentialthinking`** обязателен на этапе 5 (синтез `DESIGN.md`). Не опция.
-2. **Никаких git-операций.** Не вызывай `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`, `git push`, `git pull`. Грязное рабочее дерево не блокирует работу скила.
-3. **Язык артефакта и общения** — русский. Имена технологий, фреймворков, CSS-переменных, токенов, hex-значений, шрифтов, путей файлов и идентификаторов в коде — в оригинале.
-4. **Артефакт описывает текущий визуальный язык.** Без «раньше палитра была X», «после редизайна», «мы перешли на …». Только то, что истинно сейчас. Будущий читатель понимает дизайн без знания истории его эволюции.
-5. **Режим extract фиксирует то, что реально в коде.** Конфиг дизайн-системы и фактические стили компонентов расходятся → в `DESIGN.md` идёт фактическое состояние кода, расхождение выносится в секцию «Источник» и в хвосты `PLAN.md`. Не примиряй противоречие молча.
-6. **Режим опроса не выдумывает.** Дизайна в проекте нет → собери основу через `AskUserQuestion`, не генерируй случайную дизайн-систему как факт.
-7. **При повторном запуске** `./workflow/DESIGN.md` **переписывается целиком** (с согласия пользователя), не дополняется и не правится дельтами.
-8. **Перед записью** `./workflow/DESIGN.md` применяй правила секции «Сжатие финального артефакта».
-9. **`./workflow/PLAN.md` обновляется** в финале: закрой хвост о незафиксированном дизайне, добавь новые хвосты, если выявлены.
-10. Рекомендуется встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте). Процедура многоэтапная, план снижает риск пропуска шагов.
-
-## Этапы
-
-### 1. Прочитать контекст проекта
-
-- Прочитать `args`. Пустой → флаг «без seed». Непустой → сохранить как описание стиля / URL.
-- `Read` каждого файла, если существует:
-  - `./workflow/VISION.md` — характер продукта и аудитория. Источник темы и атмосферы.
-  - `./workflow/PROJECT.md` — тех-стек. Определяет, в каком формате фиксировать токены (Tailwind / CSS-переменные / UI-kit).
-- `Bash test -f ./workflow/DESIGN.md && echo EXISTS || echo NEW` — пометить наличие выходного файла.
-
-Отсутствие `VISION.md` и `PROJECT.md` работу не блокирует: визуальный язык извлекается из кода. Их отсутствие — хвост для `PLAN.md`.
-
-### 2. Определить режим
-
-`Read ./.claude/skills/design-guideline/references/design-sources.md` — карта источников: где в проекте лежит дизайн и как его читать.
-
-Поиск артефактов дизайна (`Bash`, `Glob`, `Grep`):
-
-- `tailwind.config.{js,ts,mjs}`, `@theme` в CSS (Tailwind v4).
-- CSS-переменные: `:root` с `--color-*`, `--font-*`, `--space-*`; файлы `theme.css`, `tokens.css`, `globals.css`, `app.css`.
-- UI-kit: `components.json` (shadcn/ui), theme-файлы MUI / Chakra, конфиг styled-system.
-- Дизайн-токены: `tokens.json`, конфиг Style Dictionary.
-- Папка компонентов: `components/ui/`, `src/components/`, аналог.
-- Подключение шрифтов: `next/font`, `<link>` на Google Fonts, `@font-face`.
-
-Найден хотя бы один содержательный источник → **режим extract** (этап 3).
-Источников нет либо они пустые → **режим опрос** (этап 4).
-
-Сообщи пользователю выбранный режим одной фразой.
-
-### 3. Извлечение из кода — режим extract
-
-Пропусти этот этап в режиме опроса.
-
-По карте из `references/design-sources.md` собери в собственном контексте (без записи файлов):
-
-- **Цвет** — токены из конфига / CSS-переменных с их ролями; семантические цвета; light / dark.
-- **Типографика** — шрифтовые семейства и fallback; типографическая шкала (размеры, line-height, вес).
-- **Пространство** — spacing-шкала, контейнеры, breakpoints.
-- **Поверхности** — радиусы скругления, тени, границы.
-- **Компоненты** — ключевые элементы из папки компонентов, их варианты и состояния.
-
-Затем сверь конфиг с фактом: `Grep` по компонентам — какие цвета, отступы, радиусы встречаются по факту. Конфиг объявляет одно, компоненты используют другое → фиксируй фактическое и запиши расхождение для секции «Источник» и для хвостов `PLAN.md`.
-
-Пользователь приложил скриншоты или ссылку на прод → прочитай их и опиши тему, плотность, настроение — то, что из кода не достаётся.
-
-Перейди к этапу 5.
-
-### 4. Опрос пользователя — режим опрос
-
-Пропусти этот этап в режиме extract.
-
-Задай вопросы через `AskUserQuestion`. `args` с описанием стиля → используй как seed для рекомендованных вариантов.
-
-1. **Характер продукта** — header «Характер», multi-select. Варианты: «строгий, технологичный» / «тёплый, человечный» / «минималистичный, спокойный» / «яркий, выразительный» / «премиальный, сдержанный» / «игривый, лёгкий». «Other» для своей формулировки.
-2. **Цветовая тема** — header «Тема», single-select: «Светлая» / «Тёмная» / «Светлая и тёмная».
-3. **Референсы** — header «Референсы», длинный вопрос «Бренды-ориентиры или ссылки на нравящийся дизайн?», «Other»; «Нет референсов» допустим.
-4. **Формат токенов** — header «Формат». `PROJECT.md` уже называет стек дизайна → пропусти вопрос, используй его. Иначе single-select: «CSS-переменные» / «Tailwind» / «UI-kit (shadcn/MUI/Chakra)» / «Пока не решено».
-
-Перейди к этапу 5.
-
-### 5. Синтез DESIGN.md (sequential-thinking)
-
-Запусти `mcp__sequential-thinking__sequentialthinking` со входом:
-
-- результат режима — извлечённые данные (extract) либо ответы опроса,
-- характер продукта из `VISION.md`,
-- формат токенов из `PROJECT.md` / ответа опроса,
-- карта секций из `references/design-sources.md`.
-
-Прорабатывай:
-
-- какая тема и атмосфера описывают продукт прилагательными-критериями,
-- какие цветовые токены, с какими ролями и значениями; покрыты ли семантические цвета; нужна ли отдельная dark-палитра,
-- какая типографическая шкала и шрифты с fallback,
-- spacing-шкала, контейнеры, breakpoints,
-- радиусы, тени, границы,
-- какие компоненты в проекте ключевые и какие состояния у них описать,
-- какие правила «можно / нельзя» удерживают консистентность именно этого продукта,
-- что записать в секцию «Источник» — извлечено из кода / собрано опросом / по референсу; есть ли расхождения.
-
-В режиме опроса для пустого проекта значения берутся из обоснованного предложения, не из случайного выбора — и это честно отражается в секции «Источник».
-
-Результат — заполненный шаблон артефакта (см. «Требования к артефакту»).
-
-### 6. Проверить существующий DESIGN.md
-
-Метка этапа 1 — `EXISTS` → задай вопрос через `AskUserQuestion`:
-
-```
-./workflow/DESIGN.md уже существует.
-
-1. Переписать целиком (Recommended) — текущий визуальный язык заменит старое описание полностью.
-2. Отменить — оставить существующий файл, выйти из скила.
-```
-
-Header: «Существующий файл». Выбор «Отменить» → выйди, ничего не записывай, в `PLAN.md` ничего не меняй.
-
-Метка `NEW` → продолжай без опроса.
-
-### 7. Применить сжатие финального артефакта
-
-Применить правила секции «Сжатие финального артефакта» к подготовленному тексту `DESIGN.md`. Не сжимай таблицы токенов, hex-значения, имена CSS-переменных, имена шрифтов, код-блоки и предупреждения.
-
-### 8. Записать DESIGN.md
-
-`Bash mkdir -p ./workflow` (идемпотентно).
-`Write ./workflow/DESIGN.md` — содержимое по шаблону из секции «Требования к артефакту».
-
-### 9. Обновить PLAN.md
-
-`Read ./workflow/PLAN.md` (если не существует — создай минимальный каркас с разделами «Фичи» и «Хвосты»).
-
-Изменения:
-
-- В разделе хвостов найди пункт о незафиксированном дизайне (если есть) и закрой / удали его.
-- Добавь короткую строку о фиксации визуального языка — ссылка на `./workflow/DESIGN.md` и режим (извлечён из кода / собран опросом).
-- Выявлены новые хвосты (расхождение конфига и компонентов, нет `VISION.md`, в коде нет dark-темы при заявленной поддержке, шрифты подключены, но не зафиксированы) → добавь их в раздел хвостов с ясной формулировкой, без правок описанных файлов.
-
-`Write` обновлённого `./workflow/PLAN.md`.
-
-## Требования к артефакту
-
-`./workflow/DESIGN.md` имеет фиксированную структуру:
-
-```markdown
-# Визуальный язык проекта
-
-## Тема и атмосфера
-2–4 фразы: характер интерфейса, плотность, настроение. Прилагательные-критерии, по которым отсекают визуальные варианты.
-
-## Цвет
-Токены с ролью, не просто список hex.
-
-| Токен | Значение | Роль |
-|-------|----------|------|
-| `--color-primary` | #2563EB | действия, акценты |
-| `--color-surface` | #FFFFFF | фон карточек |
-
-- **Семантические:** success / warning / danger / info — токен + значение.
-- **Тема:** светлая / тёмная / обе. Для тёмной — отдельные значения тех же токенов.
-- **Контраст:** минимальный уровень (WCAG AA — 4.5:1 для текста).
+## Цвета
+- Primitive values
+- Semantic roles
+- Status colors
+- Contrast/accessibility notes
 
 ## Типографика
-- **Шрифты:** основной [имя] (fallback [имя]), моноширинный [имя или «—»].
-- **Шкала:**
+- Headings
+- Body/UI text
+- Mono/code, если нужно
+- Fallbacks
+- Scale and weight rules
 
-| Уровень | Размер | Line-height | Вес |
-|---------|--------|-------------|-----|
-| H1 | ... | ... | ... |
-| body | ... | ... | ... |
-
-## Пространство и сетка
-- **Spacing-шкала:** базовая единица + ряд значений.
-- **Контейнеры:** максимальные ширины.
-- **Breakpoints:** имя → ширина.
-
-## Поверхности и глубина
-- **Радиусы скругления:** значения по ролям.
-- **Тени / elevation:** уровни.
-- **Границы:** толщина, цвет-токен.
+## Layout
+- Grid/container
+- Spacing scale
+- Breakpoints
+- Density rules
 
 ## Компоненты
-Ключевые элементы проекта. Для каждого — варианты, состояния, когда применять.
+- Основные компоненты проекта
+- Варианты
+- Состояния
+- Empty/loading/error states
 
-### [Компонент]
-- Варианты: [...]
-- Состояния: default / hover / active / focus / disabled / [...]
+## Интеракции
+- Hover/focus/active/disabled
+- Motion
+- Feedback
+- Keyboard behavior, если применимо
 
-## Можно / нельзя
-- ✅ [правило, удерживающее консистентность]
-- ❌ [чего избегать]
+## Accessibility
+- Contrast
+- Focus visibility
+- Touch targets
+- Reduced motion/high contrast/dark mode, если применимо
 
-## Источник
-Откуда извлечён визуальный язык: конкретные файлы кода / опрос пользователя / референс. Одна-две фразы. Расхождения конфига и фактических стилей — назвать здесь.
+## UI-конвенции
+- Icons
+- Imagery
+- Data visualization
+- Forms
+- Navigation
+
+## Открытые решения
+- Только вопросы, которые мешают единому канону
 ```
 
-Правила содержания:
+Format rules:
 
-- Цветовые токены даются с ролью. Не «синий #2563EB», а «`--color-primary` → действия и акценты».
-- Формат имён токенов совпадает с тем, что в проекте (`--color-primary`, `colors.primary`, `$primary`) или с выбранным в опросе.
-- Раздел компонентов описывает элементы, которые в проекте реально ключевые. Не перечисляй компоненты, которых нет.
-- Артефакт описывает текущий визуальный язык. Без истории редизайнов, без «раньше / теперь».
-- Документ самодостаточен: исполнитель пользуется им без знания, как он создавался.
+- Describe colors both by primitive value and by role: primary text, muted text, surface, border, accent, status.
+- Describe typography with fallbacks and readability rules, not font names alone.
+- If the project uses Tailwind, the canon may be expressed in terms of CSS variables, `@theme`, dark mode, focus states, and responsive utilities — but never assume a specific Tailwind version and never require migration.
+- For mobile projects, record safe areas, touch targets, navigation patterns, and platform conventions.
+- The document contains no change history, no temporary notes, and no comparisons to previous versions.
 
-## Сжатие финального артефакта
+## Updating PLAN.md
 
-Правила применяются к тексту `./workflow/DESIGN.md` перед записью (этап 7).
+At the end, append to `./workflow/PLAN.md` only design tails — unresolved project-level visual decisions that block a single canon. Do not add feature entries or change feature statuses; that is outside this skill's scope.
 
-### Что сохраняется без изменений
+## Notes
 
-- Hex-значения, rgb/hsl, числовые значения размеров, отступов, line-height, веса.
-- Имена CSS-переменных и токенов (`--color-primary`, `colors.surface`).
-- Имена шрифтов, фреймворков, UI-китов, библиотек.
-- Все код-блоки и таблицы — содержимое не трогается.
-- Заголовки секций артефакта (структура жёсткая).
-- Эмодзи-маркеры разрешённого / запрещённого (✅ / ❌).
-- Имена компонентов и их состояний.
-
-### Что убирается
-
-- **Филлер:** «как правило», «в общем», «в принципе», «по сути», «практически», «именно», «фактически», «собственно».
-- **Вежливость:** «пожалуйста», «было бы здорово», «давайте», «попробуем», «можешь использовать».
-- **Хеджирование:** «возможно», «может быть», «вероятно», «по идее», «скорее всего».
-- **Лишние обороты:** «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- **Дублирование** одной мысли в соседних предложениях — оставляй одно.
-- **Биографические упоминания:** «раньше», «после редизайна», «мы перешли» — удаляй.
-
-### Замена короткими синонимами
-
-Допустимо только если смысл сохраняется без потери нюанса:
-
-- «осуществить» → «сделать»
-- «является» → опустить или тире
-- «представляет собой» → «—» или «это»
-- «применяется для» → «для»
-
-Технические термины (token, elevation, breakpoint, WCAG, fallback) не заменяются и не переводятся.
-
-### Где НЕ применять сжатие
-
-- В разделе «Тема и атмосфера» — нужны связные фразы, передающие характер.
-- В правилах «можно / нельзя», где важна точная формулировка.
-- В секции «Источник», где описано расхождение конфига и кода.
-- В таблицах, код-блоках, hex-значениях — никогда.
-
-Цель: компактный документ, по которому работают ежедневно. Не «как можно короче», а «без лишнего веса».
-
-## Обновление PLAN.md
-
-В конце каждого запуска (этап 9):
-
-- Закрой хвост о незафиксированном дизайне (если был оставлен предыдущим скилом или сессией).
-- Добавь короткую отметку о фиксации визуального языка: режим + ссылка на `./workflow/DESIGN.md`.
-- Перечисли новые хвосты, если что-то выявлено и не входит в зону этого скила — расхождение конфига дизайн-системы и стилей компонентов, отсутствие `VISION.md`, заявленная dark-тема без реализации в коде.
-
-Хвосты — для пользователя, скил их сам не закрывает.
-
-## Замечания
-
-- Скил не пишет CSS, токены, компоненты, не правит код. Только `DESIGN.md` + отметка в `PLAN.md`.
-- `design-guideline` фиксирует визуальный язык всего проекта; `design` применяет его к отдельной фиче. Не подменяй один скил другим.
-- В режиме extract источник истины — код. Конфиг расходится с фактическими стилями → в артефакт идёт факт, расхождение — в хвосты.
-- В режиме опроса для пустого проекта значения берутся из обоснованного предложения; секция «Источник» честно фиксирует, что система собрана опросом, а не извлечена из кода.
-- Повторный запуск переписывает `./workflow/DESIGN.md` целиком только с согласия пользователя (этап 6). Отказ — выход без записи.
+- If no `./workflow/` files exist and no frontend code is found, the canon rests entirely on user answers from step 5; make that explicit in the report.
+- Existing design systems, component sets, and tokens take priority — reuse them instead of building a parallel canon.
+- The skill follows these steps literally and does not shorten them. The `DESIGN.md` it produces must be readable without knowing how or when it was created.

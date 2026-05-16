@@ -1,247 +1,306 @@
 ---
 name: feature
 description: >
-  Фиксирует идею новой фичи коротким описанием: суть, зачем, ожидаемый результат. Не планирует и не пишет код — это основа для следующих скилов. Используй когда пользователь говорит «создай фичу», «новая фича», «зафиксировать фичу».
+  Creates a self-contained feature brief from a raw request in
+  ./workflow/features/{slug}/feature.md and registers it in ./workflow/PLAN.md.
+  Use for "new feature", "capture feature", "write feature brief", or "start
+  feature".
 ---
 
-# feature — фиксация новой фичи
+# Feature
 
-## Назначение
+## Purpose
 
-Создаёт поверхностное описание новой фичи в `./workflow/features/{slug}/feature.md` и регистрирует её в `./workflow/PLAN.md` со статусом `[ ]`.
+Turn a raw user request into a self-contained feature brief at
+`./workflow/features/{slug}/feature.md` and register the feature in
+`./workflow/PLAN.md` with status `[ ]`.
 
-Описание короткое: суть, связь с целями, ожидаемый результат, открытые вопросы. Без user story, без use case, без описания тестов, без методов проверки, без оценок сроков, без технических деталей. Глубокий разбор и план — задача `planning`.
+Use this skill as the first feature workflow stage. It captures what the user
+asks for, why it matters, which context is known, what belongs in scope, what is
+out of scope, and which questions remain open for later stages.
 
-Скил не пишет код, не запускает тесты, не трогает git.
+The brief is richer than a one-line idea and smaller than a PRD or plan. It
+does not decide implementation, architecture, UI design, tests, documentation,
+or task breakdown.
 
-## Параметры
+## Parameters
 
-Строка `args`:
+Use `args` as the raw feature request:
 
-```
-[slug] <описание фичи в свободной форме>
-```
-
-- `slug` — опциональный первый токен в kebab-case (латиница, цифры, дефисы, до 50 символов). Задан → имя папки фичи. Не задан → генерируется из описания (lowercase, дефисы вместо пробелов, без спецсимволов, до 50 символов).
-- Остальное — описание фичи на языке пользователя.
-
-`args` пустой → попроси описание через `AskUserQuestion`. Не работай с пустой строкой.
-
-## Жёсткие правила
-
-1. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`. Не ветки, не worktrees. Состояние репозитория не трогается.
-2. **Язык пользователя** в `feature.md`, `PLAN.md`, общении. Имена файлов, slug, frontmatter, идентификаторы команд — в оригинале.
-3. **`mcp__sequential-thinking__sequentialthinking`** на этапе 4. Без него разбор поверхностный и теряет связи с VISION/GOALS.
-4. **Один артефакт.** Создаётся ровно `./workflow/features/{slug}/feature.md` + обновляется `./workflow/PLAN.md`. Не пишутся `plan.md`, `tests.md`, `design.md`, `NN-task.md` — это файлы других скилов.
-5. **feature.md описывает фичу в настоящем.** Без истории «изначально думали X, потом Y», без следов опроса, без альтернатив «можно так или эдак». Одно решение, как факт.
-6. **Поверхностно.** Без user story, без use case, без тестов, без методов проверки, без оценок. Максимум — ожидаемый результат для пользователя.
-7. **Незаданное не выдумывается.** Информации в `VISION.md`/`GOALS.md`/`PROJECT.md` и описании недостаточно → `AskUserQuestion`. Не дописывай «по смыслу».
-
-Для длинной процедуры (распарсить → прочитать контекст → проверить коллизию → sequential-thinking → опрос → черновик → сжать → записать → обновить PLAN.md) рекомендуется план задач во встроенном режиме планирования (todo-список / план задач — что доступно в текущем агенте). Рекомендация, не обязательство.
-
-## Этапы
-
-### 1. Распарсить `args`
-
-- Разбей строку. Первый токен в kebab-case → `slug`, остальное — описание. Первый токен не в kebab-case → весь `args` — описание, slug сгенерируется автоматически.
-- Пусто → `AskUserQuestion` с вариантами типа («Новая возможность» / «Улучшение существующего» / «Починка»), пользователь использует «Other» для произвольного описания одним-двумя предложениями. Получи описание, продолжи.
-- Slug отсутствует → сгенерируй из описания: lowercase, пробелы и неалфанумерик → дефисы, обрежь до 50 символов, без ведущих/завершающих дефисов.
-
-### 2. Прочитать контекст проекта
-
-`Read` по очереди:
-
-- `./workflow/VISION.md` — идеологическое видение.
-- `./workflow/GOALS.md` — цели разработки.
-- `./workflow/PROJECT.md` — тех-стек, запуск, деплой.
-- `./workflow/ARCHITECTURE.md` — архитектура (если есть).
-
-Файла нет — не ошибка. Запиши в список хвостов для PLAN.md (этап 9), продолжай. Не зови `initialize` сам — решение пользователя.
-
-### 3. Проверить коллизию slug
-
-`Bash test -d ./workflow/features/{slug}`. Существует → `AskUserQuestion` с тремя вариантами:
-
-1. Перезаписать существующее описание (Recommended — если slug нагенерён и совпал случайно, можно сразу заменить).
-2. Использовать другой slug (через «Other»).
-3. Прервать.
-
-Решение выполняется немедленно.
-
-### 4. Sequential-thinking: разбор фичи
-
-Через `mcp__sequential-thinking__sequentialthinking` ответь:
-
-- Что делает фича? Сформулируй одной фразой словами пользователя.
-- Связь с `VISION.md`: какие тезисы поддерживает (если VISION есть)?
-- Связь с `GOALS.md`: какую цель приближает (если GOALS есть)?
-- Совместима с `PROJECT.md`: тех-стек, ограничения (если PROJECT есть)?
-- Какие открытые вопросы по описанию? Непонятный ожидаемый результат, противоречие с зафиксированной фичей, отсутствие критерия успеха.
-- Что выводится из контекста, что нужно спросить?
-
-Зафиксируй два списка: «выведено из материалов» (с источником) и «нужно спросить».
-
-### 5. Уточняющие вопросы пользователю (условно)
-
-Список «нужно спросить» пуст → этап пропускается.
-
-Иначе:
-
-- **Не задавай лишнего.** Вопрос — только если ответ не выводится из `VISION.md`/`GOALS.md`/`PROJECT.md` или описания.
-- **Группируй зависимые.** Через `AskUserQuestion` — 1–4 независимых в одном блоке.
-- **Рекомендованный ответ первым.** Каждый вариант с «(Recommended)» в первой позиции + пояснение почему. «Other» доступен автоматически.
-- **Каждый вопрос про саму фичу**, не про оформление feature.md.
-
-Типичные вопросы:
-
-- Описание слишком общее → «Что делает фича? Основной сценарий использования?»
-- Противоречие с VISION/GOALS → «Фича расходится с {конкретный тезис}. Принимаем расхождение, пересматриваем тезис, отказываемся от фичи?»
-- Противоречие с PROJECT → «Текущий стек — {из PROJECT}. Фича подразумевает {требование}. Меняем стек, ищем обходной путь?»
-- Нет критерия успеха → «Как пользователь поймёт, что фича работает?»
-
-Ответы фиксируй в собственном контексте — пишутся в feature.md этапа 6.
-
-### 6. Сформировать черновик `feature.md`
-
-Структура (на языке пользователя):
-
-```markdown
-# {Название фичи}
-
-## Суть
-
-Одно-два предложения о том, что делает фича.
-
-## Зачем
-
-Связь с целями. Ссылка на конкретные тезисы из `./workflow/VISION.md` или `./workflow/GOALS.md` (если есть). Без VISION/GOALS — бизнес-причина одной фразой.
-
-## Ожидаемый результат
-
-Что пользователь сможет делать после реализации. Без технических подробностей, без UI-флоу пошагово. Один-два пункта.
-
-## Ограничения и открытые вопросы
-
-Только если есть. Иначе секция пропускается. Сюда — нерешённые архитектурные вопросы, явные ограничения PROJECT/ARCHITECTURE, отложенные решения.
+```txt
+<feature request>
 ```
 
-Чего в `feature.md` быть не должно:
+- If `args` is present, treat the full string as the feature request.
+- If `args` is empty, infer the request from the current user message.
+- If the request is too vague to identify the feature essence, ask one short
+  clarification before writing files.
 
-- User story («Как пользователь X, я хочу Y, чтобы Z»).
-- Use case с шагами.
-- Описание тестов и acceptance criteria.
-- Технические детали (имена таблиц, эндпоинтов, файлов).
-- Оценки сроков и сложности.
-- История опроса («после уточнений», «изначально планировалось»).
-- Альтернативы и варианты («можно так или эдак»).
-- Ссылки на ещё не существующие `plan.md`, `tests.md`, `NN-task.md`.
+## Strict Rules
 
-### 7. Сжатие финального артефакта
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout commands, or worktree commands.
+- Own only `./workflow/features/{slug}/feature.md`, the feature directory
+  `./workflow/features/{slug}/`, and the matching entry in
+  `./workflow/PLAN.md`.
+- Do not write `plan.md`, `design.md`, `tests.md`, `NN-task.md`, product code,
+  PRDs, acceptance criteria, or implementation tasks.
+- Do not call downstream skills automatically. Stop after the brief and
+  `PLAN.md` entry are ready.
+- Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
+  asking final questions or writing the brief. Creating a feature brief from a
+  raw request is analytical work.
+- Ask only blocking clarifying questions. A question is blocking only when its
+  answer changes the feature essence, problem or need, user or context,
+  expected result, or scope boundary.
+- Do not ask implementation, architecture, UI design, test, or documentation
+  questions. Record those as open questions only when they affect later
+  planning.
+- Write current feature intent only. Do not include conversation biography,
+  previous states, "now/previously" comparisons, migration notes, or removed
+  behavior.
+- If tests are mentioned as later work, phrase the need as a live product
+  invariant to protect, not as an incident or deletion check.
 
-Перед записью `feature.md` применить правила секции «## Сжатие финального артефакта» к черновику.
+## Steps
 
-### 8. Записать `feature.md`
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
 
-- `Bash mkdir -p ./workflow/features/{slug}` — папка фичи.
-- `Write ./workflow/features/{slug}/feature.md` — сжатый черновик.
+### 1. Capture the raw request
 
-### 9. Обновить `./workflow/PLAN.md`
+Read the feature request from `args` or the current user message.
 
-`./workflow/PLAN.md` не существует → создай минимальную структуру:
+Extract:
 
-```markdown
-# План проекта
+- the requested work type: problem, solution, improvement, fix, refactor, or
+  unclear
+- the main capability or change
+- domain terms and named objects
+- the user, actor, team, or usage context when present
+- the expected result in the user's words
+- explicit limits, exclusions, urgency, or constraints
 
-## Фичи
+If the request cannot identify a feature at all, ask one concise clarification
+question and stop until answered.
 
-## Хвосты для разбора
+### 2. Read only needed project context
+
+Read whichever of these exist and help interpret the feature:
+
+- `./workflow/PROJECT.md` — stack, run, deploy, and project shape.
+- `./workflow/VISION.md` — product direction and vocabulary.
+- `./workflow/ROADMAP.md` — current goals and priorities.
+- `./workflow/DESIGN.md` — only when the request explicitly touches UI or user
+  interaction.
+- `./workflow/PLAN.md` — existing feature list and workflow status.
+
+Use `rg --files`, `find`, and direct reads when you need to inspect existing
+feature folders under `./workflow/features/`.
+
+Keep context narrow. Do not scan product code unless the feature request names
+a concrete code area and the workflow files are insufficient to understand the
+feature meaning.
+
+### 3. Check for duplicates and related active features
+
+Read existing feature entries in `./workflow/PLAN.md` and folder names under
+`./workflow/features/`.
+
+If an active feature appears to cover the same request:
+
+- Read that feature's `feature.md` when it exists.
+- If the new request is a duplicate, stop and report the existing slug.
+- If the request is a distinct extension, continue and record the relationship
+  in the new brief.
+
+Do not archive, merge, rename, or change existing feature folders during this
+skill.
+
+### 4. Synthesize with `mcp__sequential-thinking__sequentialthinking`
+
+Call `mcp__sequential-thinking__sequentialthinking` and reason through:
+
+- what the user is asking for in one current-state sentence
+- whether the request is primarily a problem, solution, improvement, fix,
+  refactor, or mixed request
+- the problem or need behind the request, using project context only when it is
+  grounded in local files
+- the user, actor, team, system, or context affected
+- the expected result without turning it into acceptance criteria
+- hidden assumptions about the user, problem, or result
+- obvious edge cases and exceptional situations that planning should not miss
+- what belongs in the feature scope
+- what adjacent work must be listed as non-goals to prevent scope creep
+- which questions are truly blocking and which belong in open questions
+- whether the request duplicates or relates to an active feature
+- a stable `kebab-case` slug that names the feature by domain intent, not by
+  implementation detail
+
+Use reference ideas as filters:
+
+- Classify each possible clarification before asking it. Ask only if the answer
+  changes the brief's essence, problem, user/context, expected result, or
+  boundaries.
+- Pressure-test assumptions. If an assumption is important and unsupported,
+  ask about it when blocking; otherwise record it as an open question.
+- Record obvious edge cases and exceptions only as boundaries or open
+  questions. Do not define expected behavior for them in this stage.
+- Make scoping explicit. A non-goal is an adjacent piece of work deliberately
+  kept outside this feature.
+
+### 5. Ask blocking questions only
+
+Try to answer open points from the request, workflow files, and existing feature
+briefs before asking the user.
+
+Ask at most three concise questions in one block. For each question:
+
+- Put the recommended answer first with `(Recommended)` and a short reason.
+- Offer only materially different options.
+- Do not ask about implementation, architecture, design, tests, docs, or task
+  sequencing.
+
+If a non-blocking detail is unclear, write it under `Open Questions` in
+`feature.md` instead of interrupting the user.
+
+### 6. Create the feature directory and brief
+
+Choose the final slug:
+
+- Use lowercase Latin letters, numbers, and hyphens only.
+- Prefer 2-5 words.
+- Start and end with a letter or number.
+- Avoid implementation technology unless the feature is specifically about
+  that technology.
+- If the slug already exists, add one meaningful qualifier instead of a numeric
+  suffix when possible.
+
+Create `./workflow/features/{slug}/` and write
+`./workflow/features/{slug}/feature.md` using the Artifact Requirements below.
+
+### 7. Update `./workflow/PLAN.md`
+
+Add one service line for the feature with status `[ ]`.
+
+If `./workflow/PLAN.md` exists, preserve its structure and status markers. Add
+the new feature near the active feature list, or append it at the end when no
+clear section exists.
+
+If `./workflow/PLAN.md` is missing, create `./workflow/PLAN.md` with a minimal
+feature list that includes the new entry. Do not create unrelated workflow
+canon files.
+
+Use this entry shape when the file has no stronger local pattern:
+
+```md
+- [ ] `{slug}` - <short feature title>
+  - brief: `./workflow/features/{slug}/feature.md`
 ```
 
-`PLAN.md` существует → `Read`, найди раздел «Фичи».
+## Artifact Requirements
 
-В раздел «Фичи» добавь строку:
+Write `./workflow/features/{slug}/feature.md` in the user's working language
+unless the surrounding workflow files clearly use another language.
 
+Use this structure:
+
+```md
+# Feature: <feature name>
+
+## Summary
+
+<1-3 sentences describing the current feature intent.>
+
+## Request Type
+
+- Type:
+- Why:
+
+## Problem or Need
+
+- Problem:
+- Evidence or context:
+
+## User or Context
+
+- User / actor:
+- Situation:
+
+## Expected Result
+
+- Result:
+- Success signal:
+
+## Scope
+
+- In:
+- Related existing feature:
+
+## Non-Goals
+
+- Out:
+- Reason:
+
+## Terms
+
+- Term:
+- Meaning:
+
+## Edge Cases and Exceptions
+
+- Case:
+- Why it matters:
+
+## Open Questions
+
+- Question:
+- Impact:
+
+## Source Context
+
+- User request:
+- Project files read:
 ```
-- [ ] {slug} — {краткое название из заголовка feature.md}. См. `./workflow/features/{slug}/feature.md`.
-```
 
-Slug уже есть в `PLAN.md` (повторное добавление при перезаписи на этапе 3) → обнови строку, не дублируй.
+Adapt the template to the request's complexity:
 
-В раздел «Хвосты для разбора» добавь записи об отсутствующих базовых файлах `./workflow/` (выявлены на этапе 2):
+- Keep simple features short.
+- Omit empty optional bullets when they add no information.
+- Keep `Open Questions` explicit. Mark whether each question blocks planning or
+  can be resolved later.
+- Do not include acceptance criteria, EARS statements, user stories as a
+  required format, implementation tasks, design decisions, test plans, or code
+  snippets.
 
-- `VISION.md` отсутствует → «Зафиксировать идеологическое видение проекта (запустить `initialize`).»
-- `GOALS.md` отсутствует → «Зафиксировать цели разработки (запустить `initialize`).»
-- `PROJECT.md` отсутствует → «Зафиксировать тех-стек, запуск, деплой (запустить `initialize`).»
-- `ARCHITECTURE.md` отсутствует → «Зафиксировать архитектуру (запустить `architecture`).»
+`feature.md` is ready when a later `planning` agent can understand the feature
+without conversation history:
 
-Хвост уже зафиксирован — не дублируй.
+- the request essence is clear
+- the problem or need is stated
+- the user or context is identified when known
+- the expected result is described without over-design
+- scope and non-goals are explicit
+- relevant terms are defined
+- obvious edge cases are visible
+- open questions are named with their impact
 
-Запись итога:
+## Updating PLAN.md
 
-- `PLAN.md` не существовал → `Write` полное содержимое с минимальной структурой плюс новой записью и хвостами.
-- `PLAN.md` существовал → точечный `Edit` на каждую вставку (строка в раздел «Фичи», записи в «Хвосты для разбора»). Не перезаписывай файл целиком.
+At the end, ensure `./workflow/PLAN.md` contains one `[ ]` entry for the new
+feature and points to `./workflow/features/{slug}/feature.md`.
 
-### 10. Отчёт пользователю
+Do not change statuses for other features. Do not rewrite old feature entries
+except to avoid adding a duplicate line for the same new slug.
 
-5–7 строк на языке пользователя:
+## Notes
 
-- Путь к созданному `feature.md`.
-- Slug фичи.
-- Статус в `PLAN.md` (`[ ]`).
-- Хвосты, добавленные в `PLAN.md` (если есть).
-- Следующий шаг: запустить `planning` для разбора и построения плана.
-
-## Требования к `feature.md`
-
-- Самодостаточность для `planning`: разбор без повторного опроса по уже выясненным вопросам.
-- Описание в настоящем времени.
-- Без следов процесса (опроса, ранних вариантов, обсуждений).
-- Без секций, для которых нет содержания. Пустые «## Ограничения и открытые вопросы» — выкинуть.
-- Заголовок (`#`) — короткое название фичи, не slug. Slug — только в имени папки и в `PLAN.md`.
-
-## Сжатие финального артефакта
-
-Перед записью `feature.md` применить:
-
-- Убрать филлер: «как правило», «в общем», «в принципе», «по сути», «практически», «именно», «фактически», «непосредственно», «собственно».
-- Убрать вежливость и хеджирование: «возможно», «может быть», «вероятно», «по идее», «скорее всего».
-- Заменить лишние обороты прямым утверждением: «дело в том, что X» → «X»; «стоит отметить, что Y» → «Y».
-- Удалить дублирующие фразы в соседних предложениях.
-
-Что сохраняется без изменений:
-
-- Имена файлов, slug, пути, числа, ссылки на `./workflow/VISION.md` и `./workflow/GOALS.md`, имена технологий из `PROJECT.md`.
-- Заголовки секций.
-
-Что не сжимать:
-
-- Предупреждения об опасных или необратимых действиях.
-- Условные конструкции «если X — то Y».
-- Места, где сжатие создаёт двусмысленность.
-
-Цель — короткий читаемый документ, не телеграмма. Полное предложение лучше фрагмента, если фрагмент создаёт неясность.
-
-## Обновление `PLAN.md`
-
-В финале этапа 9 в `./workflow/PLAN.md`:
-
-- Новая запись фичи в разделе «Фичи» со статусом `[ ]` и ссылкой на `./workflow/features/{slug}/feature.md`.
-- Недостающие базовые файлы проекта — в «Хвосты для разбора» (если выявлены).
-
-Статусы фич в `PLAN.md`:
-
-- `[ ]` — новая фича, только описание.
-- `[-]` — прошла планирование (`planning`).
-- `[+]` — разбита на задачи (`task`).
-- `[x]` — реализована (`implement`).
-- `[*]` — покрыта тестами и протестирована.
-- `[/]` — в архиве.
-
-Этот скил выставляет только `[ ]`. Остальные статусы — забота следующих скилов.
-
-## Замечания
-
-- Папки `./workflow/` нет → создай через `mkdir -p` на этапе 8. Нормальный случай первого запуска.
-- Описание длиннее, чем уместно для поверхностного документа → не пиши лишнего. Резерв детализации — `planning`, читающий `feature.md` как вход.
-- Все ответы уже в `VISION.md`/`GOALS.md`/`PROJECT.md` → этап 5 пропускается молча. Без уведомления «вопросов нет» — лишний шум.
-- Пользователь хочет сразу план/реализацию без `feature.md` — не делай этого. `feature.md` — основа для следующих скилов. Объясни и попроси описание.
+- Missing `PROJECT.md`, `VISION.md`, `ROADMAP.md`, or `DESIGN.md` does not stop
+  this skill. Continue with the request and the available workflow context.
+- Missing `./workflow/features/` does not stop this skill. Create the directory
+  needed for the new feature.
+- If the request is really a plan, design, test, docs, or implementation
+  request for an existing feature, report the matching downstream skill and do
+  not create a new feature brief.
+- If the request combines several unrelated features, ask the user which one to
+  capture first. Keep one `feature.md` focused on one coherent feature.

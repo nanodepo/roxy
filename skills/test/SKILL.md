@@ -1,151 +1,279 @@
 ---
 name: test
 description: >
-  Покрывает имплементированную фичу кодом тестов на основе её tests.md и
-  контекста из feature.md / plan.md / NN-task.md. Сначала анализирует, что
-  было реализовано и что заслуживает проверки, затем расширяет tests.md
-  до подробного плана тестирования, затем пишет код тестов в проекте.
-  Используй когда пользователь говорит «протестируй фичу», «напиши тесты»,
-  «покрой тестами», «сгенерируй тесты», «создай тесты», «test», `/test`,
-  «test feature X», или когда фича уже имплементирована и пора зафиксировать
-  её поведение тестами. Только базовая бизнес-логика — не покрывать тривиальное.
+  Covers implemented features with behavior-focused tests, records tests.md,
+  runs verification, and marks PLAN.md [*] only after a fresh pass. Use for
+  "test feature", "write tests", "cover feature", or "verify feature".
 ---
 
-# Test — генерация тестов для имплементированной фичи
+# Test
 
-## Назначение
+## Purpose
 
-Берёт фичу из `./workflow/features/{slug}/`, расширяет её план тестирования и пишет код тестов в проекте.
+`test` covers an implemented feature with meaningful checks. It owns the
+feature's `./workflow/features/{slug}/tests.md`, the project test code written
+for that feature, and the tested status in `./workflow/PLAN.md`.
 
-Цель — покрыть тестами продуктовые инварианты: бизнес-логику, граничные случаи, побочные эффекты, нетривиальные интеграции. Не покрывать гарантированное системой типов, стандартной библиотекой, очевидностью реализации.
+It runs after `implement`. It reads feature artifacts, the implemented code, and
+the project test setup, then writes tests that protect current behavior
+invariants. It does not plan implementation, does not change product code, does
+not write documentation, and performs no git operations.
 
-Не пишет фичу. Не делает планирование. Не задаёт сценарии сверх инвариантов.
+## Parameters
 
-## Параметры
+Use `args` to name the feature and, optionally, a narrower scope:
 
-```
-<slug> [change-summary | test-plan | test-cases]
-```
-
-- `<slug>` — обязательный. Имя папки фичи в `./workflow/features/`.
-- Режим — необязательный. `change-summary` | `test-plan` | `test-cases`. Без режима → полный цикл всех трёх стадий подряд.
-
-`slug` не передан → спроси через `AskUserQuestion`, какую фичу тестировать; покажи список папок из `./workflow/features/`.
-
-Папки `./workflow/features/{slug}/` нет → остановись, сообщи об отсутствии фичи, предложи список доступных слугов.
-
-## Жёсткие правила (все стадии)
-
-1. **Запрет git.** Никаких `git status`, `git diff`, `git log`, `git add`, `git commit`. Не делать ветки, не предлагать коммиты. Состояние рабочего дерева — забота пользователя.
-2. **Язык пользователя** в коммуникации и в `tests.md`. Имена тестов — на языке кода проекта (обычно английский), но **про инвариант**, не про инцидент.
-3. **`mcp__sequential-thinking__sequentialthinking`** обязателен на стадиях `change-summary` (анализ реализации) и `test-plan` (структура плана).
-4. **Минимум тестов.** Покрытие ради покрытия запрещено. Тест защищает продуктовый инвариант, граничный случай, побочный эффект или нетривиальную интеграцию. Сложные сценарии — только если фича действительно сложная.
-5. **Имена тестов — про инвариант.** Хорошо: `guest_cannot_delete_project`, `billing_period_starts_on_first_business_day`, `checkout_requires_confirmed_payment_method`. Плохо: `removed_old_button`, `fixes_bug_1234`, `getter_returns_set_value`, `modulo_returns_remainder`.
-6. **Запрет тестов-эпизодов и тестов очевидного.** Не писать: тесты на удалённый функционал, тесты на остаток от деления, тесты «getter возвращает то, что положили в setter», тесты на проверку типов, гарантированных языком.
-7. **`tests.md` — в настоящем времени.** Без «раньше было X, теперь Y», без «после рефакторинга», без хроники изменений. Документ описывает, что проверяется сейчас.
-8. **Повторный запуск переписывает.** Стадия `test-plan` целиком переписывает `tests.md`. Стадия `test-cases` регенерирует код тестов под новый план; устаревшие тесты удаляются, не накапливаются как «дельта».
-9. **Каждая стадия завершает свой артефакт перед следующей.** Стадия `test-plan` пишет финальный `tests.md` целиком. Стадия `test-cases` начинается с чтения свежего `tests.md` с диска (тот, что только что переписала `test-plan`).
-
-## Этапы
-
-### 1. Парсинг аргументов
-
-Разбери `$ARGUMENTS`:
-- первый токен → `slug`;
-- второй токен (если есть) → режим: `change-summary` | `test-plan` | `test-cases`.
-
-Нет токенов → `AskUserQuestion`: какую фичу тестировать (список из `./workflow/features/`).
-
-Режим неизвестный → остановись, сообщи допустимые значения.
-
-Без режима → запомни `full_pipeline = true`.
-
-### 2. Загрузка контекста фичи
-
-Прочитай из `./workflow/features/{slug}/`:
-- `feature.md` (обязательно — основа)
-- `plan.md` (если есть — какие задачи выполнены)
-- `NN-task.md` (если есть — детальные задачи)
-- `tests.md` (если есть — базовый план из этапа планирования)
-
-Прочитай опциональный контекст проекта:
-- `./workflow/PROJECT.md` (стек, фреймворки, команды запуска)
-- `./workflow/ARCHITECTURE.md` (структура и слои)
-
-`feature.md` отсутствует → остановись, сообщи: фича не зафиксирована, скил не работает.
-
-### 3. Определение тестового фреймворка
-
-По порядку — первое сработавшее даёт ответ:
-
-1. `PROJECT.md` явно указывает фреймворк и команду запуска → используй.
-2. В проекте есть тесты → найди (`Glob` по `**/*.test.*`, `**/*_test.*`, `**/test_*.*`, `**/tests/**`, `**/__tests__/**`). По существующим тестам определи фреймворк, расположение, стиль.
-3. Не нашлось → `AskUserQuestion`: какой фреймворк, куда класть тесты, какая команда запуска (опционально).
-
-Зафиксируй: `test_framework`, `test_dir`, `test_run_command`. Нужны на стадии `test-cases`.
-
-### 4. Маршрут по режимам
-
-Полный цикл (без режима) → последовательно:
-1. Стадия `change-summary` (`references/CHANGE-SUMMARY.md`)
-2. Стадия `test-plan` (`references/TEST-PLAN.md`)
-3. Стадия `test-cases` (`references/TEST-CASES.md`)
-
-Между стадиями не спрашивай пользователя — переходи автоматически. Стадия упала → остановись, сообщи на какой стадии и почему.
-
-Один режим → только нужная стадия:
-- `change-summary` → `references/CHANGE-SUMMARY.md`
-- `test-plan` → `references/TEST-PLAN.md`. `tests.md` нет → стадия создаёт с нуля; есть → перезаписывает.
-- `test-cases` → `references/TEST-CASES.md`. `tests.md` нет → остановись, попроси прогнать `test-plan` или дать готовый `tests.md`.
-
-### 5. Финал — обновление `./workflow/PLAN.md`
-
-Прочитай `./workflow/PLAN.md`.
-
-`full_pipeline = true` → найди фичу `{slug}`, переключи статус на `[*]` Покрыта тестами и протестирована.
-
-Одиночный режим → статус не меняй.
-
-Что-то нельзя протестировать без действий пользователя (тестовые учётки, отсутствие тестовой БД, секреты) → допиши в раздел хвостов: `{slug}: {краткое описание блокера}`.
-
-`./workflow/PLAN.md` нет → не создавай, сообщи в отчёте, что он отсутствует.
-
-### 6. Отчёт пользователю
-
-5–10 строк:
-- какая фича протестирована (`{slug}`);
-- какие стадии прошли;
-- фреймворк и куда положены тесты;
-- сколько тест-кейсов в коде;
-- какие инварианты осознанно не покрыты и почему;
-- блокеры (хвосты);
-- команда запуска тестов (если известна).
-
-## Зависимости стадий
-
-- `test-plan` опирается на анализ `change-summary`. Запуск отдельно — стадия проводит анализ внутри себя через `mcp__sequential-thinking__sequentialthinking`, прежде чем перезаписать `tests.md`.
-- `test-cases` опирается на расширенный `tests.md`. Запуск отдельно — `tests.md` обязан существовать. Нет → остановись, попроси прогнать `test-plan`.
-
-## Структура артефактов
-
-```
-./workflow/
-├── PLAN.md
-└── features/
-    └── {slug}/
-        ├── feature.md      # вход (обязательно)
-        ├── plan.md         # вход (опционально)
-        ├── NN-task.md      # вход (опционально)
-        └── tests.md        # вход и выход стадии test-plan
+```txt
+<feature-slug> [scope]
 ```
 
-Тесты в коде — в каталог `test_dir` из этапа 3.
+- `<feature-slug>` - the feature directory under
+  `./workflow/features/{slug}/`.
+- `scope` - optional: a task number, plan item, component, module, or test area
+  to focus on.
 
-Других файлов в `./workflow/` скил не создаёт. Промежуточные результаты `change-summary` живут в контексте сессии, на диск не сохраняются.
+Resolve missing parameters:
 
-## Замечания
+- If `<feature-slug>` is absent, infer it from the user message and active
+  feature entries in `./workflow/PLAN.md`.
+- If multiple features match, ask one short question and stop until the user
+  names the feature.
+- If `scope` is absent, test the implemented feature behavior broadly enough to
+  cover the relevant invariants.
 
-- Фича без `tests.md` — нормально. Стадия `test-plan` создаёт его с нуля на основе анализа `change-summary`.
-- `PROJECT.md` отсутствует — скил работает; фреймворк определяется через сканирование тестов или опрос пользователя.
-- Существующие тесты в проекте — пиши в том же стиле, не ломай конвенции. Не переписывай без явной необходимости.
-- Тесты автоматически не запускаются. Прогон — решение пользователя.
+## Strict Rules
+
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout, or worktree commands. The working tree is
+  expected to be dirty; the user manages git.
+- Do not change product code. If a test fails because the implemented behavior
+  is wrong, report the failing invariant and leave the fix to `implement` or the
+  user unless the user explicitly changes scope.
+- **`mcp__sequential-thinking__sequentialthinking` is required** at the test
+  planning step (Step 5). Choosing invariants, risks, test levels, commands, and
+  residual gaps is analytical work.
+- Write tests for live behavior invariants, not for incidents, removed behavior,
+  or obvious language mechanics.
+- Use the existing project test framework, file layout, naming style, fixtures,
+  helpers, and assertion style unless the project has no usable test pattern.
+- Choose the cheapest test level that proves the invariant. Do not use E2E when
+  a unit, integration, or component test proves the same behavior reliably.
+- Set the feature status to `[*]` in `./workflow/PLAN.md` only after a fresh
+  verification command succeeds and its result is recorded in `tests.md`.
+- If tests are not run, or the verification command fails, do not set status
+  `[*]`.
+- Write this skill's text in English. Keep project prose, code, and artifacts
+  in the project's working language; keep paths, tool names, commands, and code
+  identifiers in their original spelling.
+
+## Steps
+
+For this multi-step procedure with a nested analytical call, use the agent's
+task planning mode (todo list / task plan, whichever is available) and close
+items one by one.
+
+### 1. Identify the feature and scope
+
+Parse `args` and identify `./workflow/features/{slug}/`.
+
+Read `./workflow/PLAN.md` if it exists to confirm the feature status and find
+the entry that must be updated later. Then confirm
+`./workflow/features/{slug}/feature.md` exists. If the feature cannot be
+identified, ask the user for the slug and stop.
+
+### 2. Read feature and project context
+
+Read the feature context:
+
+- `./workflow/features/{slug}/feature.md` - required.
+- `./workflow/features/{slug}/plan.md` - if it exists.
+- `./workflow/features/{slug}/design.md` - if it exists.
+- `./workflow/features/{slug}/NN-task.md` files - if they exist.
+- `./workflow/features/{slug}/tests.md` - if it exists.
+
+Read project context:
+
+- `./workflow/PROJECT.md` - for stack, run commands, test commands, and service
+  setup.
+- `./workflow/ARCHITECTURE.md` - when module boundaries affect test placement.
+- `./workflow/DESIGN.md` - when UI behavior or visual interaction is in scope.
+
+### 3. Discover the test setup
+
+Find the project's existing test framework and commands from `PROJECT.md`,
+package scripts, config files, lock files, test directories, and neighboring
+tests.
+
+Inspect nearby tests before writing new ones. Capture:
+
+- naming conventions;
+- file placement;
+- fixture and helper patterns;
+- mocking style;
+- test data setup and cleanup;
+- command used for targeted and readiness verification.
+
+If no test command is documented, infer the most likely command from the actual
+stack and record the chosen command in `tests.md`. If multiple commands are
+equally plausible and choosing one could create misleading status, ask the user
+which command proves readiness.
+
+### 4. Inspect the implemented behavior
+
+Read the implemented code in scope, including entry points, adapters, public
+interfaces, UI components, routes, state transitions, and persistence paths that
+the feature affects.
+
+Use the code as the source of truth for what exists. Use feature artifacts to
+understand intended behavior and risks. If the artifacts and code contradict
+each other in a way that changes what should be tested, stop and report the
+contradiction.
+
+### 5. Plan tests with sequential thinking
+
+Call `mcp__sequential-thinking__sequentialthinking` to decide:
+
+- the behavior invariants that deserve tests;
+- the risk each invariant protects;
+- the cheapest sufficient test level for each invariant:
+  - unit - pure logic, validation, transformations, branching;
+  - integration - module interaction, API, database, adapters;
+  - component/UI - component state, events, accessibility of important actions;
+  - e2e - critical user paths or cross-system behavior that cannot be proven
+    more cheaply;
+- existing test helpers and fixtures to reuse;
+- dependencies to keep real and dependencies to mock because they are external,
+  expensive, unstable, or unavailable;
+- targeted verification commands and the readiness command;
+- residual gaps that should remain visible in `tests.md`.
+
+Fix the result as a short test plan before editing files.
+
+### 6. Write or update tests
+
+Write tests in the project style and keep each test focused on one invariant.
+
+Quality rules:
+
+- Name tests by current behavior, not by bug IDs, removed UI, or implementation
+  details.
+- Use clear arrange-act-assert structure when the local framework does not imply
+  a different convention.
+- Keep tests independent of execution order.
+- Set up and clean up state inside the test, fixture, or accepted project
+  helper.
+- Control time, randomness, network, shared state, and external services.
+- Use parameterization for equivalent boundary cases.
+- Avoid assertions that only prove the language, framework, or a trivial getter.
+- Do not assert internal implementation details when visible behavior or public
+  contracts prove the invariant.
+
+For dynamic web UI, start or reuse the local server, wait for a stable rendered
+state, inspect the rendered DOM or screenshot before choosing selectors, prefer
+stable selectors such as role, label, visible text, or test id, and verify the
+user action plus visible result. Add Playwright only when the existing stack
+does not prove the behavior more cheaply.
+
+### 7. Run verification
+
+Run the smallest useful command first when it gives faster feedback, then run
+the readiness command that proves the feature's tested status.
+
+For every command, read the exit code and output. Do not claim success from an
+assumption. If a command is intentionally scoped, record the scope and reason in
+`tests.md`.
+
+If verification fails:
+
+- stop adding new tests;
+- identify the failing invariant, file, command, and observed output;
+- fix test-code mistakes within this skill's scope;
+- do not modify product code;
+- leave `./workflow/PLAN.md` unchanged unless it already contains an accurate
+  non-tested status;
+- record the failure or residual gap in `tests.md` and report it to the user.
+
+### 8. Write tests.md
+
+Create or update `./workflow/features/{slug}/tests.md` as the current test map
+for the feature.
+
+Use this structure:
+
+```md
+# Tests
+
+## Scope
+
+Briefly name the feature behavior covered.
+
+## Invariants
+
+| Invariant | Risk | Test level | Test file or command | Result |
+| --- | --- | --- | --- | --- |
+
+## Verification
+
+- Command: `<command>`
+- Result: `<passed / failed / not run>`
+- Notes: `<short factual note, if needed>`
+
+## Gaps
+
+- `<uncovered behavior or risk, with reason>`
+```
+
+Write `tests.md` in the present tense. Do not include history, deltas, release
+notes, bug biography, or temporary work logs. If there are no meaningful gaps,
+write `- None known from the current scope.`
+
+### 9. Update PLAN.md
+
+If the readiness command succeeded, update only this feature's service status in
+`./workflow/PLAN.md` to `[*]`.
+
+Do not change unrelated entries. Do not set `[*]` for partial verification,
+failed verification, skipped verification, or tests that were only written but
+not run.
+
+The status markers are: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
+implemented, `[*]` tested, `[/]` archived.
+
+### 10. Report
+
+Give a short report with:
+
+- the feature tested;
+- tests added or updated;
+- verification command and result;
+- whether `./workflow/PLAN.md` was updated to `[*]`;
+- residual gaps or blockers, if any.
+
+## Artifact Requirements
+
+This skill produces:
+
+- **`./workflow/features/{slug}/tests.md`** - the feature's current test map,
+  written around behavior invariants.
+- **Project test code** - tests in the existing test framework and local style.
+- **Updated `./workflow/PLAN.md`** - the feature status set to `[*]` only after a
+  fresh successful verification command.
+
+## Updating PLAN.md
+
+At the end, touch `./workflow/PLAN.md` only to set the tested feature's status
+to `[*]` after successful verification. Do not update other feature statuses and
+do not rewrite unrelated tails.
+
+If verification does not pass, leave the status as it is and report what blocks
+the tested status.
+
+## Notes
+
+- Coverage tools are useful for finding blind spots, but coverage percentages
+  are not the goal. The goal is protecting meaningful behavior and risk.
+- Add accessibility, security, performance, compatibility, or cross-browser
+  checks only when the feature's behavior or risk profile calls for them.
+- Regression tests must encode the product invariant that should keep holding.
+  The test name and `tests.md` entry describe normal behavior, not the incident
+  that motivated the check.

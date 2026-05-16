@@ -1,295 +1,264 @@
 ---
 name: improve
 description: >
-  Улучшает существующий план фичи через повторный глубокий анализ кодовой базы.
-  Находит пропущенные задачи, неверные зависимости, дублирование, проблемы со скоупом,
-  устаревшие или слабые формулировки задач и тестов. Переписывает `./workflow/features/{slug}/plan.md`
-  и `tests.md` целиком, обновляет статус в `./workflow/PLAN.md`.
-  Используй когда пользователь говорит «улучши план», «прокачай план», «второй проход по плану»,
-  «найди дыры в плане», «улучши план фичи X», «доработай план».
+  Improves an existing feature plan after planning and optional design review.
+  Use for "improve plan", "review plan", "second pass", "strengthen plan",
+  or "find gaps in plan".
 ---
 
-# Improve — улучшение плана фичи
+# Improve
 
-## Назначение
+## Purpose
 
-Берёт `./workflow/features/{slug}/plan.md` и `tests.md` фичи в работе, перепроверяет против актуального кода и проектного контекста, находит улучшения, переписывает оба артефакта целиком, обновляет `./workflow/PLAN.md`. Вторая итерация над планом — не замена `planning`, не подготовка к разбивке.
+Make a second pass over an existing feature plan and improve only
+`./workflow/features/{slug}/plan.md`.
 
-## Параметры
+Use this skill after `planning` and, when applicable, after `design`. It checks
+the plan against the feature brief, project workflow files, and the actual
+codebase. It finds holes, wrong dependencies, weak wording, unsafe rewrites,
+unnecessary scope, and hidden prerequisites, then rewrites the plan so it is
+more executable and self-contained.
 
-```
-[slug] [промпт улучшения]
-```
+The skill owns plan quality only. It does not write tests, task files, product
+code, or documentation. Test and documentation ideas are recorded only as
+service tails in `./workflow/PLAN.md` when they affect later pipeline stages.
 
-- `slug` — папка фичи в `./workflow/features/`. Опционально.
-- `промпт улучшения` — фокус улучшений (например, «добавь обработку ошибок и валидацию»). Опционально. Без него — авто-ревизия плана против кодовой базы.
+## Parameters
 
-Без параметров → ищем фичу со статусом `[-]` в `./workflow/PLAN.md`. Несколько — спросить пользователя. Ни одной — отказ с подсказкой.
+Use `args` to name the feature:
 
-## Жёсткие правила
-
-1. **`mcp__sequential-thinking__sequentialthinking`** — на этапах глубокого анализа и идентификации улучшений. Не опция.
-2. **Запрет git.** Не делай `git status`, не создавай ветки, не коммить, не смотри diff. Грязное дерево — норма. Решает пользователь.
-3. **Язык пользователя** в плане, тестах, коммуникации. Имена файлов, путей, флагов, ключей frontmatter, идентификаторов — в оригинале.
-4. **Рекомендуется встроенный режим планирования задач** (todo-list / план задач — что доступно в текущем агенте). Workflow длинный с вложенными вызовами, режим помогает не терять этапы.
-5. **Применимость по статусу фичи в `./workflow/PLAN.md`:**
-   - `[-]` (прошла планирование) → улучшаем.
-   - `[ ]` (план не создан) → отказ, направить на `planning`.
-   - `[+]` (разбита на `NN-task.md`) → отказ, направить на ручной откат разбивки (см. этап 1).
-   - `[x]`, `[*]`, `[/]` → отказ, фича закрыта или в архиве.
-6. **Не переписывай план с нуля.** Улучшение — вторая итерация над существующим планом. Структура и фазы сохраняются, если адекватны. Меняется только найденное в анализе.
-7. **Каноническое состояние без следов прежних формулировок.** Изменённые задачи переписываются целиком. Не «ранее предполагалось X, теперь Y». Удалённые задачи исчезают без упоминаний и комментариев.
-8. **Сохраняй отметки `[x]`.** Выполненные задачи не модифицируются и не удаляются.
-9. **Пользователь подтверждает первым.** До применения — обязательная презентация улучшений и `AskUserQuestion`.
-10. **Артефакты описывают текущее намерение.** `plan.md` и `tests.md` после improve — единственная истина о работе над фичей. Никакой биографии плана.
-
-## Этапы
-
-### 1. Парсинг параметров и поиск фичи
-
-Разбей входные аргументы:
-- первый токен совпадает с папкой в `./workflow/features/` → это `slug`;
-- остаток (или вся строка, если slug не определился) — промпт улучшения.
-
-`Read ./workflow/PLAN.md`. Найди статус целевой фичи.
-
-Сценарии:
-
-- **slug передан, статус `[-]`** → продолжай.
-- **slug передан, статус `[ ]`** → стоп: «план не создан, запусти `planning` для slug={slug}».
-- **slug передан, статус `[+]`** → стоп с сообщением: «план фичи `{slug}` уже разбит на задачи (`NN-task.md`). improve работает с целостным `plan.md`/`tests.md`. Сначала откатите разбивку: удалите файлы `./workflow/features/{slug}/NN-task.md`, восстановите `plan.md` в форме до разбивки (без чекбоксов-ссылок на таски), верните статус `[+]` → `[-]` в `./workflow/PLAN.md`. Затем запустите improve». Таски не трогаем.
-- **slug передан, статус `[x]` / `[*]` / `[/]`** → стоп с пояснением, что фича закрыта.
-- **slug передан, папки `./workflow/features/{slug}/` нет** → стоп: «фича `{slug}` не найдена».
-- **slug не передан** → собери фичи со статусом `[-]` из `./workflow/PLAN.md`. Одна — бери её. Несколько — `AskUserQuestion` со списком вариантов. Ни одной — стоп: «нет фич для улучшения. Сначала создайте фичу (`feature`) и спланируйте (`planning`)».
-
-### 2. Загрузка контекста
-
-Артефакты фичи `./workflow/features/{slug}/`:
-- `feature.md` — что делаем и зачем;
-- `plan.md` — главный артефакт для улучшения;
-- `tests.md` — второй артефакт для улучшения;
-- `design.md` — только чтение, не редактируем.
-
-Проектный контекст:
-- `./workflow/VISION.md`;
-- `./workflow/GOALS.md`;
-- `./workflow/PROJECT.md`;
-- `./workflow/ARCHITECTURE.md`.
-
-Отсутствующие файлы пропускай молча.
-
-### 3. Глубокий анализ кодовой базы
-
-Запусти `mcp__sequential-thinking__sequentialthinking`.
-
-По каждой задаче плана найди связанный код через `Glob`, `Grep`, `Read`. Что ищем:
-
-- паттерны проекта, которым план должен следовать;
-- код, уже частично реализующий задачу;
-- скрытые зависимости, упущенные планом;
-- общие утилиты или сервисы, которые план игнорирует, создавая дубли.
-
-Точки интеграции: API роуты, миграции БД, конфиги, импорты/экспорты, middleware, валидация.
-
-Edge cases: обработка ошибок в стиле проекта, null-safety, авторизация/аутентификация, rate limiting, кеш, валидация на границах.
-
-Промпт пользователя (если был) — учти направление улучшений.
-
-### 4. Идентификация улучшений
-
-Через `mcp__sequential-thinking__sequentialthinking` сопоставь план с найденным. Категории:
-
-**Пропущенные задачи.** Должны быть, но нет: миграции, обновление конфига, индексы, middleware, edge case.
-
-**Качество формулировок.** Описание расплывчатое (нет путей, нет деталей реализации), нет упоминаний логирования (если в проекте принято), нет деталей обработки ошибок, неверные пути файлов.
-
-**Зависимости.** Неверный порядок (A зависит от B, но B стоит после A), пропущенные зависимости (C использует выход A, но не блокируется A), лишние зависимости (могут идти параллельно).
-
-**Дубли и устаревшее.** Две задачи об одном, задача о несуществующей проблеме, задача дублирует существующий код.
-
-**Скоуп.** Задача слишком крупная (разбить), слишком мелкая (слить), вне скоупа фичи (gold-plating — удалить).
-
-**Tests.md.** Тесты-эпизоды (фиксируют инцидент или удалённое поведение) → переписать в инвариант. Тесты для тривиального, гарантированного типами или языком, → удалить. Имена тестов — про инвариант, не про инцидент.
-
-Хорошо:
-```
-guest_cannot_delete_project
-checkout_requires_confirmed_payment_method
-billing_period_starts_on_first_business_day
+```txt
+<feature-slug>
 ```
 
-Плохо:
+- `feature-slug` is the directory name under `./workflow/features/`.
+- If `feature-slug` is absent, infer it from the user message and active
+  entries in `./workflow/PLAN.md` only when exactly one matching feature has
+  both `feature.md` and `plan.md`.
+- If the feature still cannot be identified, ask one short question for the
+  slug and stop until answered.
+
+## Strict Rules
+
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout commands, or worktree commands.
+- Own only `./workflow/features/{slug}/plan.md` and the matching service status
+  or service tails in `./workflow/PLAN.md`.
+- Do not write `tests.md`, `NN-task.md`, product code, user documentation, or
+  developer documentation.
+- Do not expand the feature beyond `feature.md`, `plan.md`, and current project
+  constraints. Remove speculative future work from the implementation plan.
+- Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
+  editing `plan.md`. Plan improvement is analytical work.
+- Keep test ideas out of `plan.md` unless they are necessary implementation
+  acceptance or verification constraints. Record discovered test risks as
+  service tails for `test` in `./workflow/PLAN.md`.
+- Preserve the current project language and local document style in generated
+  workflow artifacts. Keep paths, tool names, code identifiers, and status
+  markers in their original spelling.
+- Write current plan truth only. Do not leave biography, "previously / now"
+  comparisons, migration notes, stale decisions, or removed behavior in
+  `plan.md`.
+
+## Steps
+
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
+
+### 1. Identify the feature
+
+Resolve `{slug}` from `args`, the user message, or `./workflow/PLAN.md`.
+
+Stop and ask for the slug if:
+
+- `./workflow/features/{slug}/` does not exist;
+- `./workflow/features/{slug}/feature.md` is missing;
+- `./workflow/features/{slug}/plan.md` is missing;
+- several active features could match the request.
+
+Do not create a missing feature or plan in this skill.
+
+### 2. Load the plan context
+
+Read, in this order:
+
+- `./workflow/features/{slug}/feature.md`;
+- `./workflow/features/{slug}/plan.md`;
+- `./workflow/features/{slug}/design.md`, if it exists;
+- `./workflow/PLAN.md`, if it exists;
+- `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md`,
+  `./workflow/DESIGN.md`, `./workflow/VISION.md`, and
+  `./workflow/ROADMAP.md` when they exist and affect this plan.
+
+Use the feature brief as the scope authority. Use `design.md` and workflow
+canon files as constraints, not as permission to add unrelated work.
+
+### 3. Re-check the codebase
+
+Inspect the codebase narrowly but concretely. Start from files, modules,
+symbols, routes, commands, and dependencies named by `feature.md`, `plan.md`,
+and `design.md`. Use `rg`, `rg --files`, and direct reads to verify plan
+claims.
+
+Check for:
+
+- paths, files, modules, symbols, routes, commands, or components that do not
+  exist;
+- parent paths that must exist before a file can be created;
+- reuse claims that are unsupported by local code;
+- functionality that already exists and should not be rebuilt;
+- public API, CLI, database, or UI contracts that the plan names too vaguely;
+- local patterns the plan should follow instead of inventing new structure.
+
+Keep the scan focused on evidence needed to improve `plan.md`.
+
+### 4. Analyze the plan with `mcp__sequential-thinking__sequentialthinking`
+
+Call `mcp__sequential-thinking__sequentialthinking` and produce a prioritized
+defect list plus a rewrite strategy.
+
+Analyze these dimensions:
+
+- **Clarity** - steps name concrete files, modules, commands, tools, and
+  expected outcomes.
+- **Completeness** - the plan covers the feature scope, edge cases, and
+  required integration points without leaving gaps.
+- **Feasibility** - every step is achievable with available code, tools, and
+  context.
+- **Consistency** - ordering, dependencies, terminology, and constraints do
+  not contradict each other.
+- **Scope discipline** - every step is justified by the current feature, uses
+  the simplest workable approach, and avoids speculative abstraction.
+
+Use this defect taxonomy:
+
+- phantom paths, files, modules, symbols, commands, or dependencies;
+- hidden prerequisites that must happen before a later step can work;
+- task boundaries that mix unrelated concerns or split dependent work badly;
+- unsafe rewrites of existing code without a containment or verification plan;
+- overconfident dependency graphs or parallelization assumptions;
+- vague implementation claims where a real contract or local pattern is needed;
+- design or architecture conflicts;
+- implementation plan content that belongs to `test`, `docs`, `task`, or the
+  user instead;
+- tests described as incidents or deletion checks rather than live invariants.
+
+Classify each finding as:
+
+- **must fix in `plan.md`** - the current plan would mislead implementation;
+- **service tail for `PLAN.md`** - later `test`, `docs`, `design`, `planning`,
+  or user work is needed but should not be inserted into the implementation
+  plan;
+- **ignore** - unsupported, speculative, already covered, or outside this
+  skill's scope.
+
+If the plan is too weak to repair safely, still keep this skill's boundary:
+rewrite `plan.md` into a minimal honest plan that names the missing inputs and
+next required workflow stage instead of fabricating details.
+
+### 5. Rewrite `plan.md`
+
+Edit only `./workflow/features/{slug}/plan.md`.
+
+Choose the smallest safe edit:
+
+- Rewrite the whole file when the structure is misleading, stale, or too weak
+  to patch.
+- Make targeted edits when the current format is sound and only specific
+  sections need correction.
+
+The improved plan must:
+
+- stand on its own for `task` and `implement`;
+- name concrete files, modules, commands, and local patterns when known;
+- order work by real dependencies;
+- separate implementation work from tests, docs, and user decisions;
+- remove unsupported future-proofing and premature abstractions;
+- preserve useful constraints from `feature.md`, `design.md`, and workflow
+  canon files;
+- keep open questions only when they block safe implementation and cannot be
+  resolved from local context;
+- phrase verification needs as live behavior or product invariants, not as
+  memories of bugs or removed behavior.
+
+Do not add a review report to `plan.md`. The artifact is the improved plan.
+
+### 6. Update `./workflow/PLAN.md`
+
+Touch `./workflow/PLAN.md` only when the improvement changes service status or
+reveals cross-stage tails.
+
+Allowed updates:
+
+- keep the feature in planned status `[-]` when the plan is still the current
+  pipeline artifact;
+- add a concise tail for `test` when the improved plan reveals a test risk;
+- add a concise tail for `docs`, `design`, `planning`, or the user only when
+  that later-stage work is required and outside `plan.md`;
+- preserve unrelated feature entries and existing statuses.
+
+Use the existing local format when `./workflow/PLAN.md` has one. If no stronger
+format exists, append a tail under the feature entry:
+
+```md
+  - tail/test: <live invariant or risk to cover later>
 ```
-removed_old_delete_button
-fixes_bug_1234
-modulo_returns_remainder
-```
 
-**По промпту пользователя.** Указано направление в `промпт улучшения` → задачи, не покрывающие его, отметь к доработке; недостающие — к добавлению.
+Do not mark the feature as `[+]`, `[x]`, `[*]`, or `[/]` in this skill.
 
-Не предлагай улучшения вне скоупа фичи. Минимально жизнеспособный набор — только то, что реально влияет на результат.
+### 7. Final verification
 
-### 5. Презентация пользователю
+Reread the updated `plan.md` and any changed `./workflow/PLAN.md` entry.
 
-Сформулируй отчёт:
+Confirm:
 
-```
-## Улучшения плана: {slug}
+- every must-fix defect from Step 4 is addressed or explicitly converted into a
+  blocking open question;
+- no phantom path or unsupported dependency remains as an instruction;
+- no test, task, code, or documentation artifact was created;
+- test risks are service tails, not implementation-plan clutter;
+- the plan describes the current desired state without biography or delta
+  wording;
+- the next pipeline stage can act from the updated artifacts without knowing
+  this review session.
 
-Артефакты: plan.md, tests.md
-Промпт улучшения: «{промпт или —}»
+## Artifact Requirements
 
-### Пропущенные задачи (N)
-1. **{Название}**
-   Почему: {обоснование из анализа}
-   После: задача №X
+This skill produces:
 
-### Уточнение формулировок (N)
-1. **Задача №X: {название}**
-   Проблема: {что не так}
-   Правка: {что меняется}
+- **Improved `./workflow/features/{slug}/plan.md`** - a current, executable,
+  self-contained implementation plan.
+- **Optional update to `./workflow/PLAN.md`** - only service status or service
+  tails for later stages.
 
-### Зависимости (N)
-1. Задача №X зависит от задачи №Y
-   Причина: {обоснование}
+This skill does not create `references/`, `tests.md`, `NN-task.md`, product
+code, documentation files, reports, or review scorecards.
 
-### Удаление (N)
-1. **Задача №X: {название}**
-   Причина: {обоснование удаления}
+## Updating PLAN.md
 
-### Tests.md (N)
-1. Тест «{старое имя}» → «{новое имя}»
-   Причина: {переход от эпизода к инварианту}
+At the end, update `./workflow/PLAN.md` only for the matching feature.
 
-### Итог
-- Добавить: N
-- Улучшить: N
-- Зависимостей: N
-- Удалить: N
-- Tests.md правок: N
-```
+The status markers are:
 
-Улучшений нет → короткий отчёт «план в порядке, готов к разбивке через `task`». Дальше не идём.
+- `[ ]` new;
+- `[-]` planned;
+- `[+]` split into tasks;
+- `[x]` implemented;
+- `[*]` tested;
+- `[/]` archived.
 
-Есть → `AskUserQuestion` с опциями:
-- применить все (Recommended, если улучшений мало и они не противоречат);
-- выбрать отдельные пункты;
-- отменить.
+Normally leave the feature at `[-]`. Add service tails when needed so later
+pipeline stages inherit the current risk without mixing their work into
+`plan.md`.
 
-Выборочный режим → отдельный `AskUserQuestion` со списком улучшений (`multiSelect: true`). Собери подтверждённые.
+## Notes
 
-### 6. Применение улучшений
-
-Для подтверждённых правок:
-
-1. Возьми текущее содержимое `./workflow/features/{slug}/plan.md`.
-2. Примени изменения:
-   - пропущенные задачи добавь в нужную фазу с чекбоксом `[ ]`;
-   - уточнённые формулировки замени целиком;
-   - зависимости отрази в порядке задач или явных пометках;
-   - удалённые задачи убери без комментариев и следов.
-3. Отметки `[x]` для выполненных задач — сохраняй без изменений.
-4. **Применяй правила секции «Сжатие финального артефакта»** к новому содержимому `plan.md` перед записью.
-5. `Write` нового содержимого в `./workflow/features/{slug}/plan.md` целиком. Переписывание, не точечная правка по строкам.
-6. Аналогично для `./workflow/features/{slug}/tests.md`: переписываем с учётом правок tests-секции отчёта. Имена и описания тестов — про инвариант.
-7. Применяй правила секции «Сжатие финального артефакта» и к `tests.md` перед записью.
-
-Правок в категории «Tests.md» нет → `tests.md` не трогаем. Правок в плане нет, но есть в `tests.md` → `plan.md` не трогаем. Никаких переписываний без причины.
-
-### 7. Обновление `./workflow/PLAN.md`
-
-`Read` PLAN.md. Статус фичи остаётся `[-]` — improve его не меняет, фича всё ещё «прошла планирование».
-
-Замечены проблемы за границей скоупа фичи (противоречие с архитектурой, недостающий шаг в другой фиче, неупомянутое требование из `VISION.md`/`GOALS.md`) → зафиксируй в разделе хвостов в `./workflow/PLAN.md` коротким маркером для пользователя. Не пытайся чинить сам.
-
-### 8. Отчёт
-
-4–6 строк пользователю:
-- какая фича улучшалась;
-- сколько задач добавлено / уточнено / удалено / зависимостей правлено;
-- что обновлено в `tests.md`;
-- какие хвосты записаны в `./workflow/PLAN.md` (если были);
-- следующий шаг (обычно `task` для разбивки на задачи).
-
-## Сжатие финального артефакта
-
-Правила применяются к `plan.md` и `tests.md` перед записью на этапе 6.
-
-### Что сохраняется без изменений
-
-- frontmatter (если есть) — символ в символ.
-- Имена файлов, путей, переменных, функций, классов, ключей конфигов, команд, env-переменных.
-- Код-блоки (```bash, ```json, ```yaml, ```ts и т.д.) — содержимое не трогается.
-- Сообщения об ошибках в кавычках или коде.
-- Структура `./workflow/...`, имена `feature.md`, `plan.md`, `tests.md`, `design.md`.
-- Числа, версии, ID, хеши, временные метки.
-- Внутренние заголовки разделов плана и тестов.
-
-### Что убирается
-
-- Филлер: «как правило», «в общем», «в принципе», «по сути», «практически», «фактически», «собственно», «именно».
-- Вежливость: «пожалуйста», «было бы здорово», «давайте попробуем», «можешь сделать».
-- Хеджирование: «возможно», «может быть», «вероятно», «по идее», «скорее всего», «в целом».
-- Лишние обороты: «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- Дублирование одной мысли в соседних предложениях — оставляй одно.
-
-### Замена короткими синонимами
-
-Где смысл сохраняется:
-
-- «осуществить» → «сделать»;
-- «реализовать решение для» → «решить»;
-- «произвести анализ» → «проанализировать»;
-- «выполнить запись» → «записать»;
-- «является» → опустить или «—»;
-- «представляет собой» → «—» или «это»;
-- «должен быть выполнен» → «выполняется» или прямой императив.
-
-Технические термины не заменяются. Имена методов, функций, классов, путей — никогда.
-
-### Ultra-приёмы
-
-- Стрелки причинности: «X приводит к Y» → «X → Y».
-- Один токен вместо двух, где смысл сохраняется и нет двусмысленности.
-- Сокращения общеизвестного — только если встречаются в исходном русскоязычном контексте проекта («БД», «конфиг», «UI»). Не изобретать новых.
-- Фрагменты-перечисления вместо полных предложений в списках, где утверждение атомарно.
-
-### Где НЕ применять
-
-- Условные ветвления «если X — сделай Y, иначе Z».
-- Описания зависимостей между задачами.
-- Предупреждения об опасных или необратимых операциях.
-- Места, где сжатие создаёт двусмысленность.
-- Подписи к параметрам frontmatter (description обычно остаётся читаемым).
-
-### Принцип
-
-Смысл и операционность важнее краткости. Сжатие даёт ~50–60% reduction в нарративных секциях, ~10–20% в процедурных. Не жми там, где вредно.
-
-## Требования к артефактам
-
-### plan.md
-
-- Описывает текущее намерение реализации фичи. Без «ранее предполагалось X, теперь Y».
-- Фазы и задачи с чекбоксами `[ ]` или `[x]` (для выполненных).
-- Каждая задача: краткое название + детали (файлы, паттерны, зависимости).
-- Удалённые в ходе improve задачи исчезают полностью, без упоминаний.
-
-### tests.md
-
-- Базовая бизнес-логика: поведение, доступность страниц, ключевые инварианты, наличие нужной информации.
-- Имена тестов — про инвариант, не про инцидент.
-- Минимум тестов. Тривиальное, гарантированное типами или языком, не тестируется. Покрытие ради покрытия — антипаттерн.
-
-## Обновление `./workflow/PLAN.md`
-
-- Статус фичи после improve остаётся `[-]`.
-- Замеченные проблемы за границей скоупа фичи → раздел хвостов в `PLAN.md` коротким маркером.
-
-## Замечания
-
-- План разбит на `NN-task.md` (статус `[+]`) → отказ, направление на ручной откат разбивки. Таски не трогаем.
-- В `./workflow/PLAN.md` нет фич `[-]` → отказ с подсказкой создать и спланировать фичу.
-- Промпт улучшения противоречит `VISION.md` / `GOALS.md` → не молчать. Отметить расхождение в отчёте и спросить пользователя, продолжать ли.
-- Отсутствует `tests.md` (фича создана без него) → улучшаем только `plan.md`, в отчёте отмечаем.
-- Отсутствует `feature.md` → стоп, фича невалидна.
+- A missing `design.md`, `PROJECT.md`, `ARCHITECTURE.md`, `DESIGN.md`,
+  `VISION.md`, or `ROADMAP.md` does not stop this skill. Proceed with the
+  available context and avoid inventing constraints.
+- If local code contradicts the plan, trust the verified codebase for what
+  exists and rewrite `plan.md` so future implementation is not misled.
+- If the user's request is to implement, test, document, or split tasks, report
+  the matching downstream skill instead of doing that work here.
+- Keep the output boring and operational: the next agent should see the
+  current plan, not a story about how the plan was improved.

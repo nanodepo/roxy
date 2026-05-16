@@ -1,375 +1,232 @@
 ---
 name: implement
 description: >
-  Выполняет работу по фиче из `./workflow/features/{slug}/`. Поддерживает три режима:
-  по таскам (`NN-task.md` — один таск за вызов), по фазам `plan.md`
-  (одна фаза за вызов при 3+ фазах, иначе весь план за раз),
-  по `feature.md` без плана (с подтверждением пользователя).
-  После каждой выполненной задачи переключает чекбокс в `plan.md` (`[ ]` → `[x]`).
-  После завершения всей фичи — статус в `./workflow/PLAN.md` → `[x] Выполнена`.
-  Не пишет тесты, не создаёт отчёты, не вызывает другие скилы.
-  Используй когда пользователь говорит «реализуй фичу», «имплементируй»,
-  «выполни таски», «продолжи имплементацию», «начни код», «implement»,
-  «продолжи фичу», «доделай задачи» — или когда в папке фичи есть
-  `feature.md` (опционально `plan.md`, `NN-task.md`) и пора писать код.
+  Writes the product code for a feature and toggles completed plan checkboxes,
+  working from an NN-task.md, a plan.md item, or a simple feature.md. Use for
+  "implement task", "implement feature", "write the code", "build the feature",
+  or "continue implementation".
 ---
 
-# Implement — реализация фичи
+# Implement
 
-## Назначение
+## Purpose
 
-Берёт фичу из `./workflow/features/{slug}/`, определяет режим по наличию артефактов и реализует код:
+This skill turns an already-defined scope into working product code. It
+implements one task, one plan phase, or a simple feature taken directly from
+`feature.md`, then synchronizes actual progress in the feature's `plan.md` and
+the service status in `./workflow/PLAN.md`.
 
-- **Режим A — по тасками.** Есть `NN-task.md`. Выполняется один таск за вызов; чекбокс переключается; скил завершается.
-- **Режим B — по фазам.** Есть `plan.md` с фазами, нет `NN-task.md`. 1–2 фазы → весь план за раз. 3+ фаз → опрос пользователя «весь план за раз или одна фаза».
-- **Режим C — по `feature.md`.** Нет `plan.md`. Опрос пользователя: имплементировать напрямую по описанию фичи или сначала запустить скил планирования.
+It runs in the feature pipeline normally after `task`, but it can also work off
+`plan.md` or directly off `feature.md` for a simple feature with a clear
+result. The stages after it are `test` and `docs`.
 
-После завершения работы — обновление статуса в `./workflow/PLAN.md`.
+The skill owns implementation only. It does not create or rewrite a feature
+plan, does not write `tests.md`, does not write test code, and does not write
+documentation. Those concerns belong to `planning`, `improve`, `test`, and
+`docs`. The status in `./workflow/PLAN.md` only reflects implementation
+completion.
 
-Не пишет тесты, не создаёт отчётные документы, не вызывает другие скилы автоматически, не делает коммиты. Тесты и документация — отдельные домены.
+## Parameters
 
-## Параметры
+Use `args` to name the feature and, optionally, the scope:
 
-Строка `args`:
-
-```
-[<slug>]
-```
-
-- `slug` — опциональный токен, имя папки фичи внутри `./workflow/features/`.
-
-Передан → работаем с этой фичей.
-
-Не передан → поиск активной фичи:
-- `Read ./workflow/PLAN.md`. Файла нет → остановись: «`./workflow/PLAN.md` отсутствует. Сначала зафиксируй фичу.»
-- Найди фичи со статусом `[ ]`, `[-]` или `[+]` (новая / прошла планирование / разбита на задачи).
-- Для каждой проверь существование `./workflow/features/{slug}/feature.md`.
-- Кандидатов 0 → остановись: «Нет фич, готовых к имплементации. Сначала зафиксируй фичу.»
-- Кандидатов 1 → используй.
-- Кандидатов 2+ → `AskUserQuestion`, выбор фичи. Рекомендованный — фича со статусом `[+]` первой по порядку; если таких нет — `[-]` первой; если и таких нет — `[ ]` первой. Пометка «(Recommended)».
-
-`./workflow/features/{slug}/` не существует или `feature.md` отсутствует → остановись: «Папка фичи или `feature.md` не найдены. Сначала зафиксируй фичу.»
-
-## Жёсткие правила
-
-1. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`, `git stash`, `git merge`, `git worktree`. Ветки не создаёшь, коммиты не предлагаешь. Грязное дерево — норма; пользователь сам решает, что с ним делать.
-2. **Язык коммуникации и комментариев — Русский.** Имена файлов, путей, переменных, функций, классов, типов, констант, env-переменных, ключей конфигурации — в оригинале.
-3. **За один вызов — одна единица работы.**
-   - Режим A: один `NN-task.md`. После переключения чекбокса скил завершается.
-   - Режим B при 3+ фазах: одна фаза или весь план — по выбору пользователя.
-   - Режим B при 1–2 фазах: весь план за раз.
-   - Режим C: имплементация по `feature.md` за раз.
-4. **Канон прогресса — чекбоксы в `plan.md`.** Единственный источник истины о выполненных задачах (режимы A и B). Не дублируй прогресс в других местах, не веди параллельные журналы.
-5. **Тесты не пишутся.** `tests.md` не читается, не модифицируется. Тестовые упоминания в `NN-task.md` или `plan.md` игнорируй и фиксируй как хвост в `PLAN.md` на финальном этапе.
-6. **Отчёты и summary-документы не создаются.** Финальный отчёт — текст пользователю в чат, не файл. Никаких `IMPLEMENTATION_SUMMARY.md`, `CHANGES.md`, `REPORT.md`.
-7. **Самодостаточность каждой задачи.** Читай только то, что нужно для текущей задачи: сам таск или раздел плана, упомянутые файлы и (при первом вызове) контекст фичи + проектный контекст. Не читай весь репозиторий заранее.
-8. **Обновление чекбокса — сразу после завершения задачи.** `Edit ./workflow/features/{slug}/plan.md`, `- [ ]` → `- [x]`. До перехода к следующей задаче или завершения вызова.
-9. **Статус в `./workflow/PLAN.md` обновляется только когда вся фича закрыта.** Все чекбоксы в `plan.md` — `[x]` (режимы A и B) или в режиме C — успешная имплементация по фиче. Иначе статус остаётся прежним.
-10. **Блокер задачи → `AskUserQuestion`.** Не продолжай молча, не пропускай молча, не правь задачу под себя.
-11. **Не добавляй задачи сверх плана.** Обнаружил пропуск, рассогласование `feature.md` и реальности, новую необходимую работу → фиксируй как хвост в `PLAN.md`. Пользователь решает через скил уточнения плана или декомпозиции.
-12. **Не модифицируй `feature.md`, `plan.md` (кроме чекбоксов), `NN-task.md`, `tests.md`.** Эти артефакты — каноническое состояние; имплементатор только читает их и переключает чекбоксы.
-13. **Уровень логирования — из `plan.md` секции «Настройки».** Не указан или `plan.md` отсутствует → `verbose` по умолчанию. AI-сгенерированный код часто содержит скрытые баги; подробные логи помогают их ловить.
-14. **Код описывает текущее состояние.** Никаких комментариев «раньше тут было X, теперь Y», «временно отключено», «после рефакторинга». Поведение изменилось — код отражает новое.
-15. **Режим планирования агента — рекомендуется** в режиме B при 3+ задачах в выбранной единице работы. Встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте) фиксирует прохождение: одна задача — один пункт, закрывается после переключения чекбокса. В режиме A (один таск) и при 1–2 задачах не нужен.
-
-## Этапы
-
-### 1. Принять `slug` и определить фичу
-
-`args` пустой → поиск активной фичи по алгоритму из секции «Параметры».
-
-`args` непустой → возьми токен как slug. Папка `./workflow/features/{slug}/` или `feature.md` не существуют → сообщи, остановись.
-
-### 2. Загрузить контекст фичи и определить режим
-
-`Read ./workflow/features/{slug}/feature.md` — обязателен.
-
-`Read ./workflow/features/{slug}/design.md` — если существует. Следуй ему при имплементации.
-
-`tests.md` существует → **не читай**. Другой домен.
-
-**Определение режима:**
-
-- `Bash ls ./workflow/features/{slug}/*-task.md` возвращает файлы → читай `plan.md` и переходи в **режим A**.
-- Файлов `*-task.md` нет, но `plan.md` существует → читай `plan.md` и переходи в **режим B**.
-- `plan.md` не существует → `AskUserQuestion`:
-
-```
-Заголовок: Без плана
-Вопрос: У фичи `{slug}` нет `plan.md`. Что делаем?
-Варианты:
-  1. Имплементировать по `feature.md` напрямую — `feature.md` поверхностный, риск уйти не туда. (Recommended)
-  2. Остановиться, запустить скил планирования — план получится подробнее.
+```txt
+<feature-slug> [scope]
 ```
 
-- Выбор 1 → **режим C**.
-- Выбор 2 → сообщи: «Запусти скил планирования, потом вернись.» Остановись.
-
-### 3. Загрузить проектный контекст
-
-Каждый файл ниже — `Read` если существует, пропусти если нет:
-
-- `./workflow/VISION.md` — идеологическое видение проекта.
-- `./workflow/GOALS.md` — цели разработки.
-- `./workflow/PROJECT.md` — тех-стек, конвенции, запуск, деплой. Главный источник правды о технологиях.
-- `./workflow/ARCHITECTURE.md` — архитектурный паттерн, границы модулей, правила зависимостей. Главный источник правды о размещении файлов.
-
-`ARCHITECTURE.md` отсутствует → зафиксируй как хвост для `PLAN.md` (финальный этап), но не прерывай. Имплементируй по конвенциям из `PROJECT.md` и существующего кода.
-
-### 4. Определить уровень логирования
-
-`plan.md` существует (режимы A и B) → секция «Настройки», строка `Логирование: verbose / standard / minimal`.
-
-- `verbose` — DEBUG-логи: вход/выход функций с параметрами, изменения состояния, внешние вызовы, контекст ошибок.
-- `standard` — INFO-логи: ключевые события, успешные операции, ошибки с контекстом.
-- `minimal` — только WARN/ERROR.
-
-Секции «Настройки», строки «Логирование» или `plan.md` нет → `verbose`.
-
-Принципы логирования (любой уровень):
-- структурированы (JSON или ключ-значение, в зависимости от стека);
-- уровни через env-переменную (`LOG_LEVEL` или аналог из `PROJECT.md`);
-- ошибки с контекстом (релевантные переменные, не только текст исключения);
-- отключаемые — не зашитый `console.log` в горячем пути, а вызов логгера, чувствительного к уровню.
-
-### 5. Выполнить работу по выбранному режиму
-
-Переходи в соответствующую секцию ниже: «Режим A», «Режим B» или «Режим C».
-
-### 6. Обновить `./workflow/PLAN.md` и отчитаться
-
-Вызывается после завершения работы по режиму.
-
-**Обновление статуса фичи.**
-
-`Read ./workflow/PLAN.md`. Найди строку фичи `{slug}`.
-
-- Все чекбоксы `plan.md` — `[x]` (режимы A и B), или режим C завершён успешно → статус переключается на `[x] Выполнена`. Формат: `- [x] {slug} — {краткое описание}`.
-- Остались `[ ]` чекбоксы (режим A после одного таска, режим B после одной фазы) → статус остаётся прежним (`[+]` или `[-]`). Это нормально: вызов завершён, следующий продолжит.
-
-**Фиксация хвостов.** Ситуации с этапов 3–5, которые имплементатор не вправе решать сам → раздел «## Хвосты» `PLAN.md`. Раздела нет → создай.
-
-Примеры хвостов:
-- `ARCHITECTURE.md` отсутствует — рекомендуется зафиксировать архитектурный паттерн через скил архитектуры.
-- В `NN-task.md` или `plan.md` фичи `{slug}` упомянуты тесты — передать в скил тестирования.
-- Обнаружен пропуск в плане фичи `{slug}` (`{что не покрыто}`) — рекомендуется уточнить план.
-- Пропущенная задача (`NN-task.md` или конкретный пункт фазы) — `{причина пропуска}`.
-
-**Краткий отчёт пользователю в чат.** 5–8 строк:
-- Какая фича, какой режим, какая единица выполнена (один таск NN / фаза N / весь план / по feature.md).
-- Сколько задач выполнено / пропущено / осталось.
-- Какие файлы созданы / изменены (список путей).
-- Статус фичи в `PLAN.md` (`[x]` или прежний).
-- Хвосты, если есть.
-- Что дальше — вызвать `implement` снова для следующей единицы, или пользователь сам решает (проверить, протестировать, закоммитить).
-
-Без summary-файла, без changelog.
-
-## Режим A: один таск из `NN-task.md`
-
-Используется когда в папке фичи есть файлы `*-task.md` (создаются скилом декомпозиции плана).
-
-### A.1. Найти следующий незавершённый таск
-
-`Read ./workflow/features/{slug}/plan.md`. Найди первый чекбокс `- [ ] NN. [...](./NN-task.md)`.
-
-Чекбокса `[ ]` нет → все таски выполнены, переходи к этапу 6.
-
-Чекбокс найден → извлеки `NN` и относительный путь. `Read ./workflow/features/{slug}/NN-task.md`.
-
-### A.2. Проверить зависимости таска
-
-Секция «Зависимости» в `NN-task.md` содержит ссылки `[XX-task.md](./XX-task.md)`. Для каждого XX найди соответствующий чекбокс в `plan.md`:
-
-- Чекбокс `[x]` → зависимость выполнена, идём дальше.
-- Чекбокс `[ ]` → нарушение порядка. Останови, сообщи: «Таск `NN-task.md` зависит от `XX-task.md`, который не выполнен. Проверь порядок задач в `plan.md`.» Не имплементируй.
-
-Секции «Зависимости» нет → задача независима, идём дальше.
-
-### A.3. Имплементировать таск
-
-Прочитай содержимое таска: «Контекст», «Что делать», «Файлы», «Готово, когда».
-
-Для каждого файла из секции «Файлы»:
-- Файл существует → `Read` перед изменением.
-- Файла нет → создашь через `Write` на следующих шагах.
-
-Внеси изменения через `Edit` (существующие файлы) или `Write` (новые), следуя конвенциям из `PROJECT.md` / `ARCHITECTURE.md` и выбранному уровню логирования.
-
-Не добавляй функциональность сверх «Что делать». Не пиши тестов. Не пиши комментариев про историю кода. Не рефактори соседний код, если это не указано в задаче.
-
-**Проверка «Готово, когда».** Каждое условие явно:
-- код компилируется (если стек требует);
-- функция/файл существует;
-- логика отражает требование таска.
-
-Условие не выполнено → блокер (см. секцию «Обработка блокеров»).
-
-### A.4. Обновить чекбокс и завершиться
-
-`Edit ./workflow/features/{slug}/plan.md`:
-- `old_string`: `- [ ] NN. [...](./NN-task.md)` (с точным контекстом строки);
-- `new_string`: `- [x] NN. [...](./NN-task.md)`.
-
-Строка с зависимостью (`— зависит от XX`) → суффикс сохрани.
-
-Перейди к этапу 6 (обновление `PLAN.md` и отчёт). **Не выполняй следующий таск.** Один вызов = один таск.
-
-## Режим B: по фазам `plan.md`
-
-Используется когда `plan.md` существует, но `NN-task.md` нет (план не декомпозирован).
-
-### B.1. Прочитать структуру плана
-
-`Read ./workflow/features/{slug}/plan.md`. Найди разделы `### Фаза N: {название}` и под каждым — чекбоксы `- [ ] Задача N: {описание}`.
-
-Подсчитай количество **фаз с хотя бы одним `[ ]`** (фазы, где остались незавершённые задачи). Это `pendingPhases`.
-
-`pendingPhases == 0` → все задачи выполнены, переходи к этапу 6.
-
-### B.2. Определить единицу работы
-
-- `pendingPhases <= 2` → выполняем все оставшиеся задачи во всех фазах за раз. Переходи к B.3.
-- `pendingPhases >= 3` → `AskUserQuestion`:
-
-```
-Заголовок: Объём работы
-Вопрос: В плане {pendingPhases} незавершённых фаз. Что делаем за этот вызов?
-Варианты:
-  1. Одна фаза — выполню первую незавершённую, остановлюсь. (Recommended)
-  2. Весь план — выполню все оставшиеся задачи во всех фазах.
-```
-
-Выбор 1 → единица работы = первая незавершённая фаза.
-Выбор 2 → единица работы = все незавершённые задачи во всех фазах.
-
-### B.3. Выполнить задачи единицы работы
-
-Для каждой задачи `- [ ] Задача N: {описание}` в выбранной единице работы (по порядку):
-
-1. **Прочитать описание задачи** из `plan.md`. В формате скила планирования каждая задача указывает: результат, пути к файлам, требования к логированию, зависимости.
-2. **Проверить зависимости** (если в описании задачи указано «зависит от задачи M»): найди задачу M в `plan.md`, проверь чекбокс. `[ ]` → блокер (см. секцию «Обработка блокеров»).
-3. **Имплементировать** — `Read` существующих файлов, `Edit`/`Write` изменений. Соблюдай конвенции и уровень логирования. Не выходи за рамки описания задачи.
-4. **Обновить чекбокс в `plan.md`**: `- [ ] Задача N: {описание}` → `- [x] Задача N: {описание}`. `Edit` с точным контекстом строки.
-
-После последней задачи единицы работы → переходи к этапу 6.
-
-## Режим C: имплементация по `feature.md` без плана
-
-Используется когда `plan.md` отсутствует и пользователь выбрал имплементацию напрямую (этап 2).
-
-### C.1. Подготовить контекст
-
-`feature.md` уже прочитан на этапе 2. Контекст проекта — на этапе 3.
-
-`feature.md` поверхностный по дизайну (содержит суть, цель, ожидаемый результат — без задач, без файлов). Это значит:
-
-- работай в рамках ожидаемого результата из `feature.md`;
-- размещай файлы по конвенциям из `PROJECT.md` и `ARCHITECTURE.md`;
-- минимальный объём работы, достаточный для получения ожидаемого результата;
-- не додумывай новые фичи, не расширяй область.
-
-### C.2. Имплементировать
-
-`Edit`/`Write` изменений. Соблюдай конвенции и уровень логирования (`verbose` по умолчанию).
-
-Не пиши тестов. Не пиши комментариев про историю. Не рефактори несвязанный код.
-
-### C.3. Проверить ожидаемый результат
-
-Раздел «Ожидаемый результат» в `feature.md` (или эквивалент) — каждое условие проверь явно. Не выполнено → блокер.
-
-### C.4. Завершиться
-
-Переходи к этапу 6. Чекбоксов нет (нет `plan.md`); статус фичи в `PLAN.md` → `[x]`.
-
-## DO / DON'T
-
-### DO
-
-- Одна единица работы за вызов (один таск / одна фаза / весь маленький план / имплементация по фиче).
-- Чекбокс `[ ]` → `[x]` сразу после задачи.
-- Следуй конвенциям из `PROJECT.md` и `ARCHITECTURE.md`.
-- Создавай только файлы, упомянутые в описании задачи или вытекающие из ожидаемого результата фичи.
-- Соблюдай выбранный уровень логирования.
-- Остановись и спроси при блокере.
-
-### DON'T
-
-- Тесты — даже если кажется уместно.
-- Отчётные документы, changelog, summary.
-- Задачи сверх плана / фичи.
-- Пропуск задачи без явного ответа пользователя.
-- Рефакторинг соседнего кода без указания в задаче.
-- Комментарии про историю изменений.
-- Git-команды.
-- Изменение `feature.md`, `plan.md` (кроме чекбоксов), `NN-task.md`, `tests.md`.
-- Чтение `tests.md`.
-- Чтение всего репозитория «на всякий случай».
-- Выполнение нескольких единиц работы за вызов (несколько тасков в режиме A, несколько фаз в режиме B при 3+ фазах).
-
-## Обработка блокеров
-
-Блокер — задача невыполнима как описана. Признаки:
-
-- Противоречие между «Что делать» и «Файлы» / «Готово, когда» (режим A) или внутри описания задачи (режим B), или между `feature.md` и реальностью кода (режим C).
-- Отсутствие необходимых файлов вне списка задачи (нужен модуль, который должен был быть создан ранее, но его нет).
-- Конфликт с архитектурой из `ARCHITECTURE.md`.
-- Внешняя зависимость (библиотека, сервис) недоступна или не упомянута в `PROJECT.md`.
-- Нарушение порядка зависимостей (зависимая задача не выполнена).
-
-`AskUserQuestion`:
-
-```
-Заголовок: Блокер
-Вопрос: «{краткое описание блокера}». Что делаем?
-Варианты:
-  1. Переформулировать подход — текстом дай уточнение, я применю и продолжу. (Recommended)
-  2. Остановить имплементацию — выйду, ты разберёшься через скил уточнения плана.
-  3. Пропустить задачу — оставлю чекбокс `[ ]`, зафиксирую хвост в `PLAN.md`, перейду к следующей (только если в текущем вызове ожидается ещё работа).
-```
-
-Без ответа не продолжай. Решение пользователя — закон. Не имплементируй наугад, не правь задачу самостоятельно.
-
-## Требования к логированию
-
-- **Что логировать (verbose):** вход/выход функций с параметрами и возвратом, изменения состояния (до/после), внешние вызовы (HTTP, БД, файлы), контекст ошибок (релевантные переменные, не только текст исключения).
-- **Уровни:** DEBUG / INFO / WARN / ERROR. Переключаются через env-переменную (имя из `PROJECT.md`; если нет — `LOG_LEVEL`).
-- **Структурированность:** ключ-значение или JSON, в зависимости от стека.
-- **Отключаемость:** не зашитый `console.log` в горячем пути — вызов логгера, чувствительного к уровню.
-- **Контекст:** при ошибке логируй переменные, влияющие на ветку, не только текст исключения.
-
-`verbose` — рекомендованный уровень для AI-сгенерированного кода: убрать логи позже легче, чем добавить.
-
-## Обновление `./workflow/PLAN.md`
-
-Статусы фич:
-- `[ ]` Новая фича
-- `[-]` Прошла планирование
-- `[+]` Разбита на задачи
-- `[x]` Выполнена
-- `[*]` Покрыта тестами и протестирована
-- `[/]` Перенесена в архив
-
-Скил `implement` переключает статус на `[x]` только когда вся фича закрыта (все чекбоксы `plan.md` — `[x]` или режим C успешно завершён). Иначе статус остаётся прежним — это нормально для промежуточных вызовов в режиме A или режиме B при выборе «одна фаза».
-
-Раздел «## Хвосты» — для того, что имплементатор не вправе решать:
-- отсутствие `ARCHITECTURE.md`,
-- тестовые упоминания в задачах,
-- пропуски в плане, обнаруженные во время имплементации,
-- пропущенные задачи с причиной.
-
-Формулировка хвоста — что не сделано и кому передавать (скил архитектуры, скил тестирования, скил уточнения плана).
-
-## Замечания
-
-- `./workflow/` или `./workflow/features/` отсутствуют → проект не инициализирован. Остановись, попроси пользователя запустить инициализацию.
-- `feature.md` отсутствует → остановись, рекомендуй зафиксировать фичу.
-- `plan.md` нет → переход в режим C через `AskUserQuestion` (см. этап 2). Не падаем.
-- `NN-task.md` нет, `plan.md` есть → режим B. Не падаем, не требуем декомпозицию.
-- `tests.md` существует → не читай, не трогай.
-- Все чекбоксы в `plan.md` уже `[x]`, а статус в `PLAN.md` ещё не `[x]` → переключи на `[x]` (этап 6), сообщи: «Все задачи уже выполнены, синхронизирую статус».
-- Несколько фич готовы к имплементации → `AskUserQuestion` с выбором.
-- Найденная в процессе имплементации новая задача → не добавляй в план сам, фиксируй хвост.
-- Пользователь прервал сессию посередине → следующий вызов `implement` найдёт первый `[ ]` (режим A) или первую незавершённую фазу (режим B) и продолжит. Состояние — в чекбоксах `plan.md`.
-- Режим B, в ходе выполнения единицы работы — блокер на одной из задач → пользователь выбрал «остановить» → текущая задача не отмечается, скил завершается, переходит к этапу 6.
+- `feature-slug` — the feature directory under `./workflow/features/`.
+- `scope` — optional: a task number (e.g. `03`), a phase name, or `next`.
+
+Resolve missing parameters:
+
+- If `feature-slug` is absent, infer the feature from the current user message
+  and the active features in `./workflow/PLAN.md`.
+- If `scope` is absent, pick the scope source by the order in Step 1.
+- If the feature still cannot be identified, ask one short question and stop
+  until answered.
+
+## Strict Rules
+
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout, or worktree commands. The working tree
+  is expected to be dirty; the user manages git.
+- Implement only an already-defined scope. Do not create a new plan for a
+  complex feature and do not rewrite `plan.md` as a planning act — that is the
+  work of `planning` or `improve`. If a complex feature has no usable scope
+  source, stop and report that `planning` or `task` must run first.
+- Do not write `tests.md`, do not write test code, and do not write user or
+  developer documentation. Running existing tests as a verification step is
+  allowed; authoring tests is not.
+- Do not perform broad cleanup or unrelated refactoring. Allow only the small,
+  local refactor that the stated change directly requires.
+- Toggle a `plan.md` checkbox to done only when the matching behavior is
+  actually implemented in working code — never by intention.
+- Set a feature's status to `[x]` in `./workflow/PLAN.md` only when the whole
+  implementation scope of that feature is complete.
+- If `plan.md`, a task file, or `design.md` conflicts with the actual codebase,
+  stop and surface the contradiction to the user instead of guessing.
+- Write this skill's text in English. Keep project prose, code, and artifacts
+  in the project's working language; keep paths, tool names, and identifiers in
+  their original spelling.
+
+## Steps
+
+For this multi-step procedure with an inner implement-and-verify cycle, use the
+agent's task planning mode (todo list / task plan, whichever is available) and
+close items one by one.
+
+### 1. Identify the feature and working scope
+
+Read `./workflow/features/{slug}/feature.md` first.
+
+Then choose the scope source in this order:
+
+1. If `./workflow/features/{slug}/NN-task.md` files exist, work from the task
+   named by `scope`, or the lowest-numbered unfinished task.
+2. If there is no task file but a `plan.md` exists, take the plan item named by
+   `scope`, the item the user pointed at, or the nearest unchecked item.
+3. If there is no plan at all, work directly from `feature.md` — but only for a
+   simple feature with a clear, bounded result.
+
+If the feature is complex and no usable scope source exists, stop and report
+that `planning` or `task` must run first.
+
+### 2. Pass the readiness gate and load narrow context
+
+Read the inputs that affect the change:
+
+- `./workflow/features/{slug}/design.md` and `./workflow/DESIGN.md` — when the
+  task touches UI or user-visible interaction.
+- `./workflow/ARCHITECTURE.md` — when the task changes architecture or module
+  boundaries.
+- `./workflow/PROJECT.md` — for stack, run, and build commands.
+
+Confirm the readiness gate before editing:
+
+- The scope source is clear: an `NN-task.md`, a `plan.md` item, or a simple
+  `feature.md`.
+- The behavior that must appear is understood.
+- The constraints from design, architecture, and the project stack are known.
+- At least one local pattern is found, or it is clear why none exists.
+- Risky actions are identified up front: schema changes, dependency changes,
+  auth or security changes, data migration, destructive operations.
+- Each risky action has an explicit basis in the scope, or it is raised with
+  the user before proceeding.
+
+Keep context narrow: read the files the change will touch, their related
+types, interfaces, configs, and neighboring modules — not the whole codebase.
+
+### 3. Locate the files to change and a local pattern
+
+Find the exact files the change touches and at least one existing example of a
+similar pattern in the codebase. Follow that pattern's structure, naming, and
+module boundaries so the change does not introduce an accidental abstraction.
+
+If the change depends on an unstable API, a new library version, framework
+conventions, or a deprecation, check the current official documentation rather
+than implementing from memory. Note briefly in the final report what was
+checked when external documentation influenced the code.
+
+### 4. Write a short execution outline
+
+For yourself, state in a few lines: what changes, where, and how the result
+will be verified. For a complex task, order the work by dependency, not by
+visible importance.
+
+### 5. Implement in thin, verifiable slices
+
+Work the chosen scope item until it is done or blocked:
+
+- Implement one minimal, complete slice of behavior at a time.
+- Do not write a large body of code before the first verification.
+- Verify each slice by the available means: build, lint, typecheck, existing
+  tests, manual check, or careful static review.
+- Each slice must leave the project in a working or explicitly diagnosed state.
+- Do not parallelize dependent edits without need.
+- Repeat the cycle for the next slice.
+
+### 6. Handle a failed verification
+
+If a build, linter, runtime, or manual check breaks:
+
+- Stop adding new functionality.
+- Capture short evidence: the command, the error, the affected file, and the
+  observed behavior.
+- Diagnose the minimal cause and fix it within the current scope, without
+  mixing in new scope.
+- If the error lies outside the current task, raise it with the user or record
+  it as a tail instead of expanding the work.
+
+### 7. Synchronize progress in plan.md
+
+After a scope item is implemented:
+
+- Toggle its `plan.md` checkbox to done only when the behavior is actually
+  working.
+- If an item is only partially done, leave its checkbox unchecked and add a
+  short tail describing what remains.
+- If the task was done differently than the plan describes, reword that
+  `plan.md` item so the artifact reflects the real state.
+- If a new mandatory sub-item is discovered, add it to `plan.md` as an
+  unchecked tail.
+
+### 8. Run a light self-check
+
+Before finishing, review the change:
+
+- Correctness — the stated behavior works; edge cases in the current scope are
+  not ignored.
+- Fit — the code follows local patterns, naming, and module boundaries.
+- Simplicity — no extra abstraction, no broad cleanup, no unrelated rewriting.
+- Safety — user input, auth, secrets, external data, and destructive actions
+  are handled carefully.
+- Verification — an available check was run, or it is stated explicitly why it
+  could not be.
+- Workflow — checkboxes, feature status, and tails reflect the real state.
+
+### 9. Update the feature status and record tails
+
+If the whole implementation scope of the feature is now complete, set its
+status to `[x]` in `./workflow/PLAN.md`.
+
+If work remains for `test`, `docs`, `planning`, `design`, or the user, record
+it as a tail — in `plan.md` for feature-level follow-up, or in
+`./workflow/PLAN.md` for cross-stage follow-up. Do not mask unfinished work as
+done.
+
+## Artifact Requirements
+
+This skill produces no separate report file. Its artifacts are:
+
+- **Product code changes** in the project, scoped to the chosen task, phase, or
+  simple feature.
+- **Updated `plan.md`** — checkboxes that match actual progress and item
+  wording that matches the real implementation, plus any newly discovered
+  tails.
+- **Updated `./workflow/PLAN.md`** — the feature's service status set to `[x]`
+  only when the whole implementation scope is complete.
+
+## Updating PLAN.md
+
+At the end, touch `./workflow/PLAN.md` only to:
+
+- set the feature status to `[x]` when its entire implementation scope is done;
+- append cross-stage tails the implementation revealed.
+
+Do not change other features' statuses and do not rewrite unrelated entries.
+The status markers are: `[ ]` new, `[-]` planned, `[+]` split into tasks,
+`[x]` implemented, `[*]` tested, `[/]` archived.
+
+## Notes
+
+- A missing `design.md`, `ARCHITECTURE.md`, `DESIGN.md`, or `PROJECT.md` does
+  not stop this skill — proceed on the available context and note any
+  constraint that could not be confirmed.
+- If the request is really a planning, design, test, or documentation request,
+  report the matching skill and do not implement outside this skill's scope.
+- If the scope is too vague to implement safely, do not invent requirements
+  inside this skill — ask one short question or hand the work back to
+  `planning`.
+- Write only the current state of code and artifacts. Do not leave biography,
+  "previously / now" comparisons, or migration commentary in the code or in
+  `plan.md`.

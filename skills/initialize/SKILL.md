@@ -1,314 +1,192 @@
 ---
 name: initialize
-description: Фиксирует контекст проекта в `./workflow/` - идеологическое видение (`VISION.md`), цели разработки (`GOALS.md`) и операционную справку по стеку, запуску и деплою (`PROJECT.md`). Стек определяется автоматически по существующему коду или через опрос для пустого проекта. Используется при старте нового проекта и при подготовке существующего к работе агентов.
+description: >
+  Bootstraps a project for the agent workflow — creates the ./workflow/
+  structure, records technical context in ./workflow/PROJECT.md, and seeds
+  ./workflow/PLAN.md with routing tails. Use when the user says "инициализируй
+  проект", "подготовь проект к работе", "создай workflow", or "забутстрапь
+  проект".
 ---
 
-# initialize
+# Initialize
 
-## Назначение
+## Purpose
 
-Инициализация контекста проекта для последующей работы агентов. На выходе:
+This skill bootstraps a project so the rest of the agent workflow has a place to
+write its canon. It owns three concerns: the `./workflow/` directory structure,
+the technical reference in `./workflow/PROJECT.md`, and a base
+`./workflow/PLAN.md` that routes the next project stages.
 
-- `./workflow/VISION.md` — идеологическое видение (для кого, какую проблему, ценности, чего НЕ делает).
-- `./workflow/GOALS.md` — цели разработки (краткосрочные, среднесрочные, долгосрочные, отложенное).
-- `./workflow/PROJECT.md` — тех-стек, команды запуска / тестов / сборки / деплоя, переменные окружения, всё нужное агенту для работы.
-- `./workflow/PLAN.md` — каркас плана, если отсутствует; во всех случаях — хвост «архитектура не зафиксирована».
+It is the first stage of the project workflow. After it, `roadmap`,
+`architecture`, and `design-guideline` fill the created structure with content.
 
-`./workflow/ARCHITECTURE.md` initialize **не создаёт**. Анализ архитектуры — задача отдельного скила; здесь только хвост.
+Bootstrap stays cheap and safe: it creates the place for canon but makes no
+product, architectural, or visual decisions. It does not write `VISION.md`,
+`ROADMAP.md`, or `ARCHITECTURE.md`, does not pick an architecture pattern, does
+not describe design, and does not create features. The service tails it writes
+into `PLAN.md` route those stages but do not make `initialize` their owner.
 
-`AGENTS.md`, `CLAUDE.md`, `.gitignore` и любые другие файлы в корне проекта initialize не трогает.
+## Strict Rules
 
-## Параметры
+- **No git operations** in any form: no status checks, diffs, logs, branches,
+  commits, pushes, or `git init`. The working tree is expected to be dirty; the
+  user manages git.
+- **Stay inside the boundary.** Do not write `VISION.md`, `ROADMAP.md`,
+  `ARCHITECTURE.md`, or `DESIGN.md`; do not select an architecture pattern; do
+  not describe design; do not create `feature.md` or any feature folder content.
+  Route that work as tails in `PLAN.md` only.
+- **Do not touch the application.** Do not scaffold app code, generate
+  `.gitignore`, `.env.example`, or `README.md`, and do not edit `AGENTS.md`,
+  `CLAUDE.md`, `.claude/`, hooks, or symlinks.
+- **Safe, idempotent update.** When `./workflow/` already exists, never
+  overwrite user-written text. Fill only missing sections, keep existing
+  `PLAN.md` entries and tails, and add a tail only for an artifact that is
+  genuinely absent.
+- **Facts, not guesses.** Record in `PROJECT.md` only what is observable in
+  project files. Mark anything undetermined as `Требует уточнения` instead of
+  inventing it.
+- **Current state only.** `PROJECT.md` and `PLAN.md` describe the project as it
+  is now. No biography, no decision logs, no "previously X, now Y" comparisons.
+- Write this skill's instruction text in English; write the artifacts
+  (`PROJECT.md`, `PLAN.md`) in the user's working language. Keep tool names,
+  paths, framework names, commands, and code identifiers in their original
+  spelling.
+- Do not call downstream skills automatically. Stop once the structure,
+  `PROJECT.md`, and `PLAN.md` are ready.
 
-`args` — опциональное короткое описание проекта (1–3 предложения), seed для рекомендаций в опросах.
+## Steps
 
-```
-[описание проекта]
-```
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
 
-- Пустой → стандартный опрос без предзаполнений.
-- Непустой → используется при формулировке рекомендованных вариантов на этапах 5–7. Опрос идёт полностью: VISION и GOALS — намерения, их нельзя угадать.
+### 1. Detect the current `./workflow/` state
 
-## Жёсткие правила
+Check whether `./workflow/` and its files already exist:
+`./workflow/PROJECT.md`, `./workflow/PLAN.md`, `./workflow/VISION.md`,
+`./workflow/ROADMAP.md`, `./workflow/ARCHITECTURE.md`, `./workflow/DESIGN.md`,
+and the `./workflow/archive/` and `./workflow/features/` directories.
 
-1. **Язык пользователя** во всех опросах, объяснениях, отчёте, телах создаваемых артефактов. Имена технологий, команды, пути, ключи переменных окружения, имена файлов — в оригинале.
-2. **`mcp__sequential-thinking__sequentialthinking`** обязателен на этапе 4 (анализ контекста и формулировка персонализированных вопросов). Не опция.
-3. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`. Грязное рабочее дерево — норма; пользователь сам решает, что коммитить.
-4. **Артефакты описывают текущее состояние полно.** Файл читается как самодостаточный источник истины — без отсылок к разговору опроса, без «как мы решили выше», без «(уточнить)», «(добавлено пользователем)».
-5. **Без биографии.** В VISION/GOALS/PROJECT нет «раньше делали X, теперь Y», «после первой версии», «мы поменяли». Только текущая формулировка. Старого варианта нет — старого варианта нет в файле.
-6. **Без дельта-инструкций.** Снят пункт — его нет в артефакте. Никаких «теперь можно», «отменено».
-7. **Материализация артефактов.** Каждый собранный черновик записывается через `Write` до отчёта пользователю, после применения сжатия.
-8. **Перезапись только с явного согласия.** Существующий `./workflow/VISION.md`, `./workflow/GOALS.md`, `./workflow/PROJECT.md` → `AskUserQuestion` (перезаписать / прервать). Прервать — остановись, частично не записывай.
-9. **Встроенный режим планирования задач.** Процедура длинная, с вложенными опросами — заведи todo-список (план задач — что доступно в текущем агенте) ровно по числу этапов ниже и закрывай пункты по мере выполнения.
+- If nothing exists, this is a fresh bootstrap: create everything.
+- If `./workflow/` exists, this is an idempotent update: read existing files,
+  preserve their content, and only complete what is missing.
 
-## Этапы
+### 2. Collect technical context
 
-### 1. Определить контекст
+Inspect the project root to determine the tech stack. Read sources in this
+priority order; later sources only fill gaps the earlier ones leave:
 
-- Прочитать `args`. Пустой → флаг «без seed». Непустой → сохранить как короткое описание.
-- `Bash ls -1 .` — что лежит в корне проекта.
-- Проверить выходные файлы: `Bash test -f ./workflow/VISION.md && echo VISION_EXISTS; test -f ./workflow/GOALS.md && echo GOALS_EXISTS; test -f ./workflow/PROJECT.md && echo PROJECT_EXISTS; test -f ./workflow/PLAN.md && echo PLAN_EXISTS`.
+1. package manifests and lock files (e.g. `package.json`, `pyproject.toml`,
+   `go.mod`, `Cargo.toml`, `pom.xml`, and their lock files);
+2. language and build configs (compiler, bundler, framework configs);
+3. `Dockerfile`, Compose files, devcontainer, and CI files;
+4. test, lint, and format configs;
+5. environment templates (`.env.example` and similar);
+6. `README.md` and `docs/` as supporting context only, never as the source of
+   truth;
+7. the user, for facts that no file reveals.
 
-### 2. Сканирование кодовой базы
+Record only observable facts. If a critical fact (stack, run command, key
+services) cannot be determined from files, prefer writing `Требует уточнения`
+in `PROJECT.md` and adding a clarification tail in `PLAN.md`. Ask the user at
+most a few short questions, and only for facts that genuinely block a usable
+technical reference — do not interrupt for minor gaps.
 
-Прочитать (если существуют), извлечь язык, фреймворк, БД, скрипты:
+### 3. Create the `./workflow/` structure
 
-- `package.json` → Node.js / TypeScript; `dependencies`, `devDependencies`, `scripts`.
-- `composer.json` → PHP; `require`, `scripts`.
-- `pyproject.toml` или `requirements.txt` → Python; зависимости, `[tool.poetry.scripts]`.
-- `go.mod` → Go; модуль, версия.
-- `Cargo.toml` → Rust; зависимости, `[bin]`/`[lib]`.
-- `docker-compose.yml` → сервисы (БД, кеш, очереди).
-- `Dockerfile` → среда выполнения.
-- `prisma/schema.prisma`, `db/schema.rb`, `alembic.ini` → БД и ORM.
-- Структура папок верхнего уровня (`src/`, `app/`, `api/`, `cmd/`, `pkg/`).
+Create any missing directories: `./workflow/`, `./workflow/archive/`, and
+`./workflow/features/`. Leave existing directories and their contents untouched.
 
-Ничего нет → фиксируй «кодовая база пустая, опрос для нового проекта».
+### 4. Write `./workflow/PROJECT.md`
 
-### 3. Конфликты с существующими артефактами
+Create `./workflow/PROJECT.md` from the section canon in *Artifact
+Requirements*, or update an existing one.
 
-Для каждого из `VISION.md`, `GOALS.md`, `PROJECT.md`, существующего в `./workflow/`:
+When updating: keep all user-written text, fill only sections that are missing
+or empty, and do not rewrite sections that already hold valid content. Replace a
+section only when project files clearly contradict what it says.
 
-`AskUserQuestion`:
+### 5. Create or update `./workflow/PLAN.md`
 
-- «Перезаписать `./workflow/VISION.md` начисто» (первый, Recommended — переписывание чище дельты).
-- «Прервать — оставить текущий файл».
+Create a base `./workflow/PLAN.md` if it is missing, or update the existing one,
+following *Updating PLAN.md* below. Add routing tails for the project stages
+whose artifacts do not yet exist.
 
-Пользователь выбрал «прервать» хотя бы для одного — остановись, отчитайся, что инициализация прервана пользователем. Никаких частичных записей.
+## Artifact Requirements
 
-`./workflow/PLAN.md` к этому опросу не относится: его initialize дополняет, не перезаписывает (см. этап 9).
+### `./workflow/PROJECT.md`
 
-### 4. Анализ контекста (sequential-thinking)
+`PROJECT.md` is the technical reference the next agents read instead of
+re-deriving the stack. Write it so a later agent can start without chat history:
+where the project is, how to run it, how to verify a change, which tools are
+already chosen, and which decisions are still open.
 
-Через `mcp__sequential-thinking__sequentialthinking` ответь:
+Use these sections; fill each only with observable facts. Leave a section short
+or mark it `Требует уточнения` when data is missing — do not pad it.
 
-- Тип проекта по сканированию: библиотека / CLI / веб-сервис / SPA / data pipeline / прочее.
-- Какие категории вопросов в этапах 5–7 применимы (БД спрашивать только если уместна; деплой — только если есть среда выполнения).
-- Какие варианты в `AskUserQuestion` пометить «Recommended» под выявленный стек.
-- Какие черновые формулировки подставить в `AskUserQuestion` через «Other» (если у `args` есть описание — использовать как seed).
-- Какие выходные артефакты получат минимальное содержимое (например, в библиотеке без сервера — нет деплоя).
+- **Project** — name and type, when reliably identified.
+- **Stack** — languages, frameworks, and their versions.
+- **Package manager and commands** — the package manager and the main commands.
+- **Run locally** — how to start the project locally.
+- **Tests** — how to run tests.
+- **Build** — how to build the project.
+- **Lint / format / typecheck** — how to check changes.
+- **Environment and external services** — env variables and external services.
+- **Docker / CI / deploy** — only when such files are present.
+- **Open questions** — facts not determined from files; each becomes a
+  clarification tail in `PLAN.md`.
 
-Без этого этапа опрос будет одинаковым для несовместимых проектов.
+Keep it tight: every line is a fact a later agent can act on. No universal best
+practices, no narrative project history, no time estimates, no team or
+onboarding content.
 
-### 5. Опрос VISION.md
+### `./workflow/PLAN.md`
 
-Четыре вопроса. Короткие — `AskUserQuestion` с вариантами + «Recommended» первым. Длинные — `AskUserQuestion` с вариантом «Сформулировать самостоятельно» и «Other» для свободного текста.
+`PLAN.md` is a light status index: a feature list plus service tails for the
+next project stages. On a fresh bootstrap there are no features yet, so create
+it with an empty feature list and the routing tails. Use this base shape when
+the file has no stronger local pattern:
 
-1. **«В одной фразе: что это за проект и для кого?»** — длинный, «Other».
-2. **«Какую проблему решает? Чем существующие решения не подходят?»** — длинный, «Other».
-3. **«Ключевые ценности проекта»** — мульти-селект: открытость / приватность / минимализм / производительность / DX / совместимость / иное.
-4. **«Что проект осознанно НЕ делает (anti-features)?»** — длинный, «Other».
+```md
+# PLAN
 
-Ответ «иное» / «Other» с уточнением — фиксируй буквально.
+## Features
 
-### 6. Опрос GOALS.md
+<empty until the feature skill adds entries>
 
-Четыре вопроса, тот же формат:
+## Tails
 
-1. **«Краткосрочные цели (1–3 месяца) — минимальный жизнеспособный набор?»** — длинный, «Other».
-2. **«Среднесрочные цели (3–12 месяцев) — крупные вехи?»** — длинный, «Other».
-3. **«Долгосрочные ориентиры?»** — длинный, «Other»; «Не зафиксировано» допустим.
-4. **«Что осознанно отложено и НЕ цель сейчас?»** — длинный, «Other»; «Ничего конкретно» допустим.
-
-### 7. Опрос PROJECT.md
-
-**Код существует** (этап 2 нашёл артефакты стека):
-
-Покажи краткий черновик: язык, фреймворк, БД, ORM, основные скрипты (`dev`, `build`, `test`), переменные окружения из `.env.example` / `docker-compose.yml`.
-
-`AskUserQuestion`:
-
-- «Всё верно, использовать черновик» (Recommended).
-- «Поправить пункты — указать какие».
-- «Заменить целиком».
-
-Поправить / заменить → задавай прицельные вопросы только по изменяющимся пунктам, не пересматривай согласованное.
-
-**Код отсутствует** (этап 2 показал пустоту):
-
-Спрашивай последовательно (зависимые вопросы — отдельными вызовами):
-
-1. **Язык реализации** — варианты под тип проекта из этапа 4, первый Recommended с обоснованием.
-2. **Фреймворк** — варианты под язык; «Без фреймворка» уместен для CLI / библиотек.
-3. **База данных** — варианты под тип проекта; «БД не нужна» допустимо.
-4. **ORM / query builder** — варианты под язык и БД; пропустить, если БД не нужна.
-5. **Сборщик / менеджер пакетов** — варианты под язык.
-6. **Команды dev / test / build / deploy** — `AskUserQuestion` «Заполнить позже» как Recommended для пустого проекта, либо «Other» с конкретными командами.
-7. **Переменные окружения** — список ключей без значений; «Не определено» допустимо.
-
-### 8. Сборка и запись артефактов
-
-Для каждого из трёх артефактов:
-
-1. Составить черновик по шаблону (см. «Шаблоны артефактов»).
-2. Применить правила секции «Сжатие финального артефакта» к тексту.
-3. `Bash mkdir -p ./workflow` (идемпотентно).
-4. `Write ./workflow/VISION.md` → `Write ./workflow/GOALS.md` → `Write ./workflow/PROJECT.md`.
-
-Каждый файл — самостоятельный документ. Не оставляй «(см. PROJECT.md)» в VISION или «(см. VISION.md)» в GOALS, кроме случаев, когда ссылка нужна агенту для следующего шага.
-
-### 9. Обновить `./workflow/PLAN.md`
-
-`./workflow/PLAN.md` отсутствует → создать с каркасом:
-
-```markdown
-# План проекта
-
-## Фичи
-_(пусто; добавляется при работе над фичами)_
-
-## Хвосты
-- Архитектура не зафиксирована. Запусти отдельный скил для создания `./workflow/ARCHITECTURE.md`.
+- [ ] roadmap — ...
+- [ ] architecture — ...
 ```
 
-`./workflow/PLAN.md` существует → `Read` файл, найти раздел «Хвосты» (или эквивалент по смыслу). Раздел есть → добавить пункт про архитектуру, если его ещё нет. Раздела нет → добавить раздел в конец файла, не трогая остальное.
+Feature status markers used across the workflow: `[ ]` new, `[-]` planned,
+`[+]` split into tasks, `[x]` done, `[*]` tested, `[/]` archived. `initialize`
+does not add feature entries — it only writes the structure and the tails.
 
-Никаких иных правок `./workflow/PLAN.md` initialize не делает.
+## Updating PLAN.md
 
-## Опросник — точные формулировки
+At the end, ensure `./workflow/PLAN.md` carries a service tail for each next
+project stage whose artifact is missing:
 
-Используй ровно эти формулировки в `AskUserQuestion`. Адаптируй под язык пользователя только если язык опроса не русский.
+- a `roadmap` tail if `./workflow/VISION.md` or `./workflow/ROADMAP.md` is
+  absent;
+- an `architecture` tail if `./workflow/ARCHITECTURE.md` is absent;
+- a `design-guideline` tail if `./workflow/DESIGN.md` is absent;
+- a technical-clarification tail if `PROJECT.md` has entries under
+  **Open questions**.
 
-### VISION
+Preserve existing feature entries, statuses, and tails. Do not add a duplicate
+tail for an artifact that already exists or for a tail already present. Do not
+change any feature status — `initialize` is not a feature stage.
 
-| № | Заголовок (header) | Вопрос | Тип |
-|---|--------------------|--------|-----|
-| 1 | Суть проекта | В одной фразе: что это за проект и для кого? | Длинный, «Other» |
-| 2 | Проблема | Какую проблему решает? Чем существующие решения не подходят? | Длинный, «Other» |
-| 3 | Ценности | Ключевые ценности проекта (выбери все применимые) | Multi-select |
-| 4 | Anti-features | Что проект осознанно НЕ делает? | Длинный, «Other» |
+## Notes
 
-### GOALS
-
-| № | Заголовок | Вопрос | Тип |
-|---|-----------|--------|-----|
-| 1 | MVP | Краткосрочные цели (1–3 месяца) — минимальный жизнеспособный набор? | Длинный, «Other» |
-| 2 | Вехи | Среднесрочные цели (3–12 месяцев)? | Длинный, «Other» |
-| 3 | Горизонт | Долгосрочные ориентиры (можно «не зафиксировано») | Длинный, «Other» |
-| 4 | Отложено | Что осознанно НЕ цель сейчас? | Длинный, «Other» |
-
-### PROJECT (для пустого проекта)
-
-| № | Заголовок | Вопрос | Тип |
-|---|-----------|--------|-----|
-| 1 | Язык | Язык реализации | Single-select, Recommended первым |
-| 2 | Фреймворк | Фреймворк (если нужен) | Single-select |
-| 3 | БД | База данных (если нужна) | Single-select |
-| 4 | ORM | ORM / query builder (если БД нужна) | Single-select |
-| 5 | Сборка | Сборщик / менеджер пакетов | Single-select |
-| 6 | Команды | Команды dev / test / build / deploy | Длинный, «Other» |
-| 7 | Окружение | Переменные окружения (ключи) | Длинный, «Other» |
-
-## Шаблоны артефактов
-
-### VISION.md
-
-```markdown
-# Видение проекта
-
-## Что это
-{Одна-две фразы из вопроса VISION-1.}
-
-## Для кого
-{Целевая аудитория. Если в VISION-1 не указана явно — переформулируй из ответа.}
-
-## Какую проблему решает
-{Ответ VISION-2, в настоящем времени, без отсылок к разговору опроса.}
-
-## Ценности
-- {Каждая ценность из VISION-3 отдельной строкой.}
-
-## Чего проект НЕ делает
-- {Каждый anti-feature из VISION-4 отдельной строкой.}
-```
-
-Объём — 10–30 строк. Идеологический документ, не учебник.
-
-### GOALS.md
-
-```markdown
-# Цели разработки
-
-## Сейчас (1–3 месяца)
-- {Каждая цель MVP отдельным пунктом, в форме результата.}
-
-## Дальше (3–12 месяцев)
-- {Каждая среднесрочная веха отдельным пунктом.}
-
-## Горизонт
-{Ответ GOALS-3 свободным текстом или «Не зафиксировано».}
-
-## Отложено
-- {Каждый осознанно отложенный пункт. Если ответ «Ничего конкретно» — раздел не пишем.}
-```
-
-Цели формулируются как состояния, не как задачи: «приложение запускается локально одной командой», а не «настроить запуск».
-
-### PROJECT.md
-
-````markdown
-# Проект — операционная справка
-
-## Стек
-- Язык: {язык}
-- Фреймворк: {фреймворк или «—»}
-- База данных: {БД или «—»}
-- ORM: {ORM или «—»}
-- Сборщик / менеджер пакетов: {инструмент}
-- Среда выполнения: {Node / Python / Docker / иное}
-
-## Запуск локально
-```bash
-{команда dev}
-```
-
-## Тесты
-```bash
-{команда test}
-```
-
-## Сборка
-```bash
-{команда build, если применима}
-```
-
-## Деплой
-{Краткое описание процесса деплоя или «Не определено».}
-
-## Переменные окружения
-- `KEY_NAME` — {назначение, без значения}
-- ...
-
-## Что нужно знать агенту перед работой
-- {Каждый существенный для агента факт отдельным пунктом: используемый менеджер пакетов, нестандартные пути, обязательные шаги перед запуском.}
-````
-
-Пустые разделы помечай «Не определено», не выкидывай заголовок — сигнал агенту, что данные нужно заполнить позже.
-
-## Сжатие финального артефакта
-
-Перед записью VISION.md, GOALS.md, PROJECT.md применяй к их тексту:
-
-- **Убирай филлер:** «как правило», «в общем», «в принципе», «по сути», «фактически», «непосредственно», «собственно».
-- **Убирай вежливость и хеджирование:** «возможно», «может быть», «вероятно», «давайте», «было бы здорово», «попробуем», «скорее всего».
-- **Сохраняй без изменений:** имена технологий (PostgreSQL, FastAPI, React), команды (`npm run dev`, `pytest`), пути (`./workflow/PROJECT.md`), версии, ключи переменных окружения, имена методов / файлов.
-- **Не сжимай предупреждения и условные конструкции** («если у проекта нет среды выполнения — раздел деплоя оставь со значением "Не определено"»). Двусмысленность ценнее экономии токенов.
-
-Без замены оборотов синонимами, без стрелок-причинности, без сокращений общеизвестного. Артефакты короткие — агрессивное сжатие даст мало и рискует исказить смысл.
-
-## Обновление `./workflow/PLAN.md`
-
-Этап 9 единственный, где initialize пишет в `PLAN.md`. Фиксируется:
-
-- **Хвост:** «Архитектура не зафиксирована. Запусти отдельный скил для создания `./workflow/ARCHITECTURE.md`.» — добавляется в раздел «Хвосты», если его ещё нет. Раздел отсутствует → создаётся.
-- **Статус инициализации** (опционально): если в `PLAN.md` есть раздел про статус проекта — отметить, что контекст (VISION/GOALS/PROJECT) зафиксирован. Раздела нет — не создавать.
-
-Не пересматривай `PLAN.md` целиком. Не переименовывай разделы. Не сжимай существующий текст.
-
-## Замечания
-
-- **Пустой проект, пустой `args`:** опрос идёт, рекомендации более общие.
-- **Существующие выходные файлы:** только полная перезапись по согласию (см. этап 3). Никаких дельта-правок.
-- **`./workflow/` отсутствует:** создаётся через `mkdir -p` на этапе 8.
-- **Опрос прерван пользователем на любом этапе:** остановись, отчитайся, никакой частичной записи.
-- **Ответ пользователя противоречив (например, «БД не нужна» + назван конкретный ORM):** уточни через `AskUserQuestion`, не пытайся помирить молча.
+- Missing input files do not stop this skill. Proceed on whatever project files
+  are available and record the rest as open questions.
+- When `./workflow/` already exists, treat every file as input and merge
+  conservatively: complete the missing parts, never discard user content.
+- The project's own `README.md` is a supporting hint only; never treat it as the
+  authority on the stack.
+- The skill is ready when the project has a working `./workflow/` structure, a
+  fact-based technical reference in `PROJECT.md`, and a `PLAN.md` listing the
+  next open project stages.

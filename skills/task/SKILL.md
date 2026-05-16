@@ -1,307 +1,275 @@
 ---
 name: task
 description: >
-  Разбивает план фичи на самодостаточные задачи, которые удобно
-  выполнять по одной. Используй когда пользователь говорит
-  «разбей план на задачи», «декомпозируй план», «создай таски».
+  Splits a feature plan into self-contained NN-task.md files for sequential
+  implementation and marks the feature split in ./workflow/PLAN.md. Use for
+  "split plan into tasks", "break down the plan", "create task files", or
+  "decompose feature into tasks".
 ---
 
-# Task — декомпозиция плана на задачи
+# Task
 
-## Назначение
+## Purpose
 
-Берёт `./workflow/features/{slug}/plan.md`, делает декомпозицию **по фазам**: одна фаза плана — один `NN-task.md`. Переписывает `plan.md` так, чтобы он остался картой фичи: вводный контекст про цели и общую картину сохраняется, под ним — чекбоксы фаз с короткими описаниями и ссылками на таски.
+Turn `./workflow/features/{slug}/plan.md` into a set of self-contained task
+files at `./workflow/features/{slug}/NN-task.md`, each executable on its own,
+and set the feature status to `[+]` in `./workflow/PLAN.md`.
 
-Ничего нового не придумывается. Декомпозиция — превращение существующих фаз в исполняемые единицы с достаточным контекстом, чтобы исполнитель видел и общую картину фичи, и связь конкретного таска с соседними. Тесты, имплементация, переосмысление плана — другие скилы.
+Use this skill after `planning` or `improve`. It reads the feature brief, the
+plan, and the design when present, then cuts the work into tasks sized for
+sequential execution by `implement`. It may also rewrite `plan.md` as a phase
+and task map when that makes downstream work clearer.
 
-## Параметры
+The task files are consumed by `implement`; `test` and `docs` may read them to
+understand the real scope. This skill owns only `NN-task.md` and the
+navigational normalization of `plan.md`. It does not write product code, does
+not write `tests.md`, and does not change other `./workflow/` documents beyond
+the feature's status. The status in `./workflow/PLAN.md` only signals that the
+feature is ready for step-by-step implementation.
 
-Строка `args` — один токен, `slug` фичи.
+## Parameters
 
-`slug` = имя папки `./workflow/features/{slug}/`. Внутри — `feature.md` и `plan.md`.
+Use `args` to name the feature:
 
-Нет токена или папки → сообщи, попроси slug, остановись.
+```txt
+<feature-slug>
+```
 
-## Жёсткие правила (все этапы)
+- `feature-slug` is the directory name under `./workflow/features/`.
+- If `feature-slug` is absent, infer it from the current user message and the
+  active entries in `./workflow/PLAN.md`, but only when exactly one feature has
+  a `plan.md` and matches the request.
+- If the feature still cannot be identified, ask one short question for the
+  slug and stop until answered.
 
-1. **`mcp__sequential-thinking__sequentialthinking`** обязателен на этапах 5 и 6. Не опция.
-2. **Никаких git-операций.** Не `git status`, `git diff`, `git add`, `git commit`, `git branch`, `git checkout`, `git init`. Ветки не создаёшь, коммиты не предлагаешь. Грязное дерево — норма.
-3. **Язык пользователя** (русский) — тело тасков, переписанный `plan.md`, коммуникация. Имена файлов, путей, MCP, инструменты, команды — в оригинале.
-4. **Материализация артефактов.** Каждый таск — `Write` сразу при готовности (этап 8). Переписанный `plan.md` — `Write` на этапе 9. Не работай «в памяти».
-5. **Каноническое состояние.** Единственный источник плана после работы — переписанный `plan.md`. Старые формулировки задач в новый план как «было/стало» не переносятся — план описывает текущее каноническое разбиение.
-6. **Формулировки в настоящем времени.** Таски и план описывают что делать сейчас. Без «изначально планировалось», «после переосмысления», «раньше считали».
-7. **Достаточный контекст таска.** Каждый `NN-task.md` содержит контекст, нужный исполнителю, чтобы войти и работать: суть фазы, её роль в общей картине фичи, что было до и что идёт после. Не пересказывает `feature.md` целиком — даёт выжимку, релевантную фазе, и ссылается точными путями. Не отсылает к разговору с пользователем. Сухих инструкций «сделай X» без объяснения зачем — избегай.
-8. **Бюджет внимания vs полнота картины.** Не копируй `feature.md` или `plan.md` целиком в таск. Но связь фазы с общей картиной, цели, релевантные ограничения, зависимости от соседних фаз — обозначай явно. Голый список действий без контекста — антипаттерн.
-9. **Чистая передача.** В финале `./workflow/PLAN.md` обновлён, временные заметки удалены. Следующий скил получает минимум — чекбоксы в `plan.md` + ссылки на таски.
-10. **Режим планирования агента** — рекомендуется для длинной процедуры. Встроенный режим планирования задач (todo-список / план задач — что доступно в текущем агенте) ведёт продвижение по 11 этапам.
+## Strict Rules
 
-## Этапы
+- Do not perform git operations in any form: no status checks, diffs, logs,
+  branches, commits, pushes, checkout commands, or worktree commands. The
+  working tree is expected to be dirty; the user manages git.
+- Own only `./workflow/features/{slug}/NN-task.md`, the navigational map in
+  `./workflow/features/{slug}/plan.md`, and the matching service status in
+  `./workflow/PLAN.md`.
+- Do not write product code, `tests.md`, test code, `design.md`, user
+  documentation, or developer documentation. Those concerns belong to
+  `implement`, `test`, `design`, and `docs`.
+- Do not change the substance of `plan.md`. Rewriting it is allowed only to
+  turn it into a clear map of phases and the `NN-task.md` files created here.
+- Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
+  asking final questions or writing task files. Decomposing a plan into
+  self-contained tasks is analytical work.
+- Ask only blocking clarifying questions. A gap is blocking only when the plan
+  cannot be sliced safely without the answer. Otherwise proceed and record the
+  gap as a tail.
+- Write this skill's text in English. Keep project prose and artifacts in the
+  working language of the existing `./workflow/` files; keep paths, tool names,
+  code identifiers, and status markers in their original spelling.
+- Write the current task set only. Do not include conversation biography,
+  previous plan states, "now/previously" comparisons, or migration notes.
 
-### 1. Принять `slug` и проверить параметр
+## Steps
 
-Разбей `args`. Один токен.
+For this multi-step procedure, use the agent's task planning mode (todo list /
+task plan, whichever is available) and close items one by one.
 
-Нет токена → сообщи формат, попроси slug, остановись.
+### 1. Identify the feature
 
-Папка `./workflow/features/{slug}/` не существует → сообщи, остановись.
+Resolve `{slug}` from `args`, the user message, or `./workflow/PLAN.md`.
 
-### 2. Проверить артефакты фичи
+Stop and ask for the slug if:
 
-`Read ./workflow/features/{slug}/feature.md` — обязателен.
+- `./workflow/features/{slug}/` does not exist;
+- `./workflow/features/{slug}/plan.md` is missing;
+- several active features could match the request.
 
-`Read ./workflow/features/{slug}/plan.md` — обязателен.
+Do not create a missing plan in this skill. If the feature has only a
+`feature.md` and no `plan.md`, report that `planning` must run first and stop.
 
-`feature.md` или `plan.md` отсутствует → сообщи: декомпозиция требует зафиксированной фичи и плана. Рекомендуй сначала запустить скил планирования. Остановись.
+If `NN-task.md` files already exist for this feature, treat this run as an
+update: rebuild the task set from the current `plan.md` rather than appending
+to the old files.
 
-`Bash ls ./workflow/features/{slug}/*-task.md` — проверь, нет ли таск-файлов от прошлого запуска.
+### 2. Read the feature and plan context
 
-Файлы есть → через `AskUserQuestion` спроси: перезаписать (удалить старые, сделать новые) или прервать. Никаких автоматических удалений.
+Read, in this order:
 
-### 3. Загрузить проектный контекст
+- `./workflow/features/{slug}/plan.md` — the scope authority for the task set.
+- `./workflow/features/{slug}/feature.md` — the feature intent the plan serves.
+- `./workflow/features/{slug}/design.md`, if it exists — UI constraints that
+  affect how UI work is sliced.
+- `./workflow/PROJECT.md` and `./workflow/ARCHITECTURE.md`, when present — only
+  to keep task file boundaries consistent with the stack and code placement
+  rules.
 
-`Read` каждого существующего файла: `./workflow/VISION.md`, `./workflow/GOALS.md`, `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md`.
+Use `plan.md` as the scope authority. Do not add work that the plan does not
+contain.
 
-Используй для:
-- технологического стека и конвенций именования,
-- архитектурных границ,
-- проверки, что таски не противоречат целям и видению.
+### 3. Survey the whole plan before slicing
 
-`ARCHITECTURE.md` отсутствует → зафиксируй хвост для `PLAN.md` (этап 10). Не прерывай.
+Walk the entire plan once and cover every category of work at the same time —
+foundation, data and model, API and contracts, UI and interaction,
+integrations, rollout and runtime concerns. List every unit of work the plan
+implies before cutting any task, so no part of the scope falls out of the task
+set.
 
-### 4. Прочитать feature.md и plan.md
+If the change the plan describes is obviously small and single-file, do not
+create `NN-task.md` files. Instead leave `plan.md` as the working scope, note
+in the final report that the feature goes straight to `implement` off
+`plan.md` or `feature.md`, and still update `./workflow/PLAN.md` as described
+in Step 8.
 
-Файлы прочитаны на этапе 2.
+### 4. Decompose with `mcp__sequential-thinking__sequentialthinking`
 
-Зафиксируй:
-- вводную часть `plan.md` (цели фичи, общий контекст, что делаем и зачем) — это сохранится в переписанном плане;
-- список **фаз** `plan.md`: имя фазы и что в неё входит (задачи/шаги внутри фазы);
-- зависимости между фазами (если автор плана указал);
-- из `feature.md` — суть и ожидаемый результат фичи (для вводной части переписанного `plan.md` и для контекстных секций тасков).
+Call `mcp__sequential-thinking__sequentialthinking` and reason through:
 
-В `plan.md` нет фаз (плоский список задач без группировки) → через `AskUserQuestion` спроси: запустить скил планирования заново, чтобы план получил фазы, или ты сам сгруппируешь задачи в фазы с подтверждением пользователя. Без явных фаз декомпозиция не делается — это структурное требование скила.
+- the full list of work units from the survey, grouped into ordered tasks;
+- the size of each task: small enough to implement and verify in one focused
+  session — split any task that spans many files or many subsystems, or whose
+  name contains "and";
+- the execution order and the dependency of each task on earlier tasks;
+- the file boundaries of each task: which files it touches and which it must
+  leave alone, so two tasks do not collide;
+- for each task: input documents, goal, scope of work, and a verifiable
+  expected result that states plainly when the task is done;
+- whether `plan.md` should be rewritten as a phase and task map, and what that
+  map looks like;
+- which gaps genuinely block a safe slicing and which can be recorded as tails.
 
-### 5. Анализ плана через sequential-thinking
+A task is self-contained when an executor can pick it up and act on it without
+chat history and without reading sibling `NN-task.md` files, beyond the named
+task dependencies. Each task carries its own context and a short reason it
+exists. If a task cannot be made self-contained, split it further or state in
+the task file what context is still missing.
 
-`mcp__sequential-thinking__sequentialthinking`. Ответь:
+### 5. Ask blocking questions only
 
-- Сколько фаз в плане? Одна фаза → один таск.
-- Что входит в каждую фазу (задачи, шаги, файлы)? Содержимое фазы целиком становится содержимым таска.
-- Какая роль каждой фазы в общей картине фичи? Эту роль таск артикулирует явно — не как формальность, а как смысловой ориентир для исполнителя.
-- Какие зависимости между фазами? Фаза B не стартует, пока не завершена фаза A → таск B зависит от таска A. Формулируй как ссылку на таск-файл.
-- Какие файлы затрагивает каждая фаза? Полные пути.
-- Какие конвенции из `VISION.md`/`GOALS.md`/`PROJECT.md`/`ARCHITECTURE.md` применимы к каждой фазе? Указывай только релевантные.
-- Какое короткое описание каждой фазы (одно предложение) пойдёт в переписанный `plan.md`?
+Try to close gaps from `plan.md`, `feature.md`, the workflow files, and the
+codebase before asking the user.
 
-Новых фаз сверх плана не придумывай. Объединение или разбиение фаз — только если в плане явная ошибка (две независимые единицы склеены в одну фазу или одна логическая фаза разорвана). Тогда сначала уточни у пользователя через `AskUserQuestion`.
+Ask at most three concise questions in one block. For each question, put the
+recommended answer first with `(Recommended)` and a short reason, and offer
+only materially different options.
 
-Зафиксируй структурированный список тасков: имя фазы, что в неё входит, роль в фиче, файлы, зависимости, короткое описание для `plan.md`.
+If a gap does not block a safe slicing, record it as a tail instead of
+interrupting the user.
 
-### 6. Сформировать NN-task.md для каждой фазы через sequential-thinking
+### 6. Write the `NN-task.md` files
 
-`mcp__sequential-thinking__sequentialthinking`. Для каждой фазы этапа 5 — один черновик `NN-task.md`.
+Write one `./workflow/features/{slug}/NN-task.md` per task, using the Artifact
+Requirements below. Number the files with a zero-padded `NN` (`01`, `02`, ...)
+in execution order. Describe the current task only, with no history of how the
+decomposition was produced.
 
-Имя файла: `NN-task.md`, NN с ведущим нулём (`01-task.md`, `02-task.md`, ..., `99-task.md`). Порядок NN отражает порядок фаз в плане.
+### 7. Normalize `plan.md` as a map
 
-Структура:
+If a phase and task map makes downstream work clearer, rewrite
+`./workflow/features/{slug}/plan.md` so it lists the phases and points each
+phase at its `NN-task.md` files. Keep the plan's content; turn it into a map,
+do not strip its substance. If the existing `plan.md` is already clear, leave
+it as is.
 
-```markdown
-# {Название фазы}
+### 8. Update `./workflow/PLAN.md`
 
-## Контекст
+Set the feature status to `[+]` (split into tasks).
 
-Достаточный контекст, чтобы исполнитель вошёл «холодным»: суть фичи в 1–2 предложениях (выжимка из `feature.md`), роль этой фазы в общей картине, что было сделано в предыдущих фазах, что идёт после. Ссылки на родительские файлы — относительными путями: `[feature.md](./feature.md)`, `[plan.md](./plan.md)`. Это не пересказ всего плана — это карта вокруг текущей фазы.
+Preserve the file's structure, other feature entries, and their status
+markers. Change only the line for this feature. Use the existing local format.
 
-## Что делать
+### 9. Final verification
 
-Конкретные действия по содержимому фазы в императиве. «Создай функцию X в файле Y», «добавь поле Z в схему W». Если в фазе несколько шагов — нумеруй их и располагай в логическом порядке. Каждый шаг — действие + что должно получиться, без размышлений «можно было бы».
+Reread the written `NN-task.md` files, the `plan.md` map, and the changed
+`./workflow/PLAN.md` entry.
 
-## Файлы
+Confirm:
 
-Полные пути к создаваемым/изменяемым файлам. Один путь на строку. Краткая пометка справа от пути — что меняется (новый файл, новое поле, новая функция).
+- every work unit from the survey landed in a task; nothing fell out;
+- each task is sized for one focused implement-and-verify session;
+- each task has an input, a goal, file boundaries, and a verifiable expected
+  result;
+- each task can be handed to `implement` with no chat retelling;
+- task dependencies and numbering reflect a workable execution order;
+- no product code, `tests.md`, `design.md`, or documentation was created;
+- the task set describes the current desired work without biography or delta
+  wording.
+
+## Artifact Requirements
+
+Write each `./workflow/features/{slug}/NN-task.md` in the working language of
+the existing `./workflow/` files.
+
+Use this structure, scaled to the task's size:
+
+```md
+# NN. <task title>
+
+## Зачем
+
+One or two lines: why this task exists and what part of the feature it moves.
+
+## Вход
+
+- Source plan items and documents this task derives from.
+
+## Цель
+
+The behavior or result the task must produce.
+
+## Границы файлов
+
+- Likely files to touch
+- Files or areas to leave alone
+
+## Объём работ
+
+- Concrete, ordered, verb-first units of work.
 
 ## Зависимости
 
-Ссылки на таск-файлы относительными путями: `[01-task.md](./01-task.md)`. Зависимостей нет → секция пропускается.
+- None / task NN / external answer.
 
-## Готово, когда
+## Ожидаемый результат
 
-Объективные проверяемые признаки завершения фазы: файлы существуют, функции экспортированы, схема содержит поля, эндпойнт возвращает ожидаемые коды. Без «и т.д.», без «всё работает».
+A clear, verifiable done-signal: what must be true for the task to count as
+complete. This is a definition of done, not a list of test cases — the test
+plan belongs to `test`.
 ```
 
-Все секции, кроме «Зависимости», обязательны. Пустая секция → фаза слишком тонкая для отдельного таска; вернись к этапу 5 и пересмотри декомпозицию (или предложи пользователю объединить фазы).
+The task set is ready when:
 
-«Контекст» — не формальность. Уберёшь «Контекст» — исполнитель должен потерять понимание зачем делается фаза. Если убрав «Контекст», смысл не теряется, значит ты написал его слишком сухо.
+- another agent can act on any single task without conversation history;
+- each task is self-contained and carries its own context and reason;
+- file boundaries keep two tasks from colliding;
+- the expected result of each task is verifiable;
+- the `plan.md` map, if rewritten, points cleanly at the task files.
 
-Черновики тасков пиши сразу через `Write` в `.claude/skills/task/.forge-tmp/06-draft-NN-task.md` (через `Bash mkdir -p` создай папку при первом таске). Нужно для следующего этапа сжатия.
+If the plan is too thin to slice safely, keep this skill's boundary: do not
+fabricate tasks. Report what input is missing and which earlier workflow stage
+must run first.
 
-`.forge-tmp/` — рабочий буфер скила `task`. Финальные файлы пишутся в `./workflow/features/{slug}/` на этапах 8–9. Буфер удаляется на этапе 10.
+## Updating PLAN.md
 
-### 7. Применить правила сжатия
+At the end, set the matching feature in `./workflow/PLAN.md` to status `[+]`.
 
-Для каждого черновика таска и черновика переписанного `plan.md`:
+The status markers are:
 
-1. `Read` черновика.
-2. Применить правила секции «## Сжатие финальных артефактов».
-3. `Write` сжатого результата: `.claude/skills/task/.forge-tmp/07-compressed-NN-task.md` (таски) или `.claude/skills/task/.forge-tmp/07-compressed-plan.md` (план).
+- `[ ]` new;
+- `[-]` planned;
+- `[+]` split into tasks;
+- `[x]` implemented;
+- `[*]` tested;
+- `[/]` archived.
 
-Черновик переписанного `plan.md` создаётся на этом этапе перед сжатием — структура в этапе 9.
+Change only this feature's line. Do not touch statuses or entries for other
+features.
 
-### 8. Записать NN-task.md файлы
+## Notes
 
-Для каждого `.claude/skills/task/.forge-tmp/07-compressed-NN-task.md`:
-
-`Read` сжатого таска → `Write ./workflow/features/{slug}/NN-task.md`.
-
-Один `Write` на таск.
-
-### 9. Записать переписанный plan.md
-
-`plan.md` после декомпозиции — карта фичи: вводный контекст про цели и общую картину сохраняется, под ним — чекбоксы фаз с короткими описаниями и ссылками на таски. Голым навигатором быть не должен. Читая один `plan.md`, агент-исполнитель понимает что и зачем делается; таски раскрывают детали.
-
-Структура:
-
-```markdown
-# План: {название фичи}
-
-## О фиче
-
-{1–3 абзаца: суть фичи, зачем она нужна, ожидаемый результат. Берётся из `feature.md` и вводной части исходного `plan.md`. Описывает текущую картину в настоящем времени, без «изначально хотели X».}
-
-## Общий контекст
-
-{Опционально: существенный технический или продуктовый контекст из исходного плана — ключевые ограничения, принятые архитектурные решения, зависимости от других частей системы. Включай только если этот контекст не очевиден из «О фиче» и реально нужен исполнителю при работе над фазами.}
-
-## Фазы
-
-- [ ] 01. [{название фазы}](./01-task.md) — {короткое описание фазы из этапа 5}
-- [ ] 02. [{название фазы}](./02-task.md) — {короткое описание}
-- [ ] 03. [{название фазы}](./03-task.md) — {короткое описание} (зависит от 01)
-```
-
-Без раздела «изначально было», без commit checkpoints, без ветки git, без даты, без summary в конце.
-
-`Read .claude/skills/task/.forge-tmp/07-compressed-plan.md` → `Write ./workflow/features/{slug}/plan.md`.
-
-Старый `plan.md` полностью заменяется. Вводный контекст из старого плана нормализуется (переписывается в настоящем времени, без следов прошлых итераций) и переносится в секции «О фиче» / «Общий контекст»; список задач/фаз исходного плана заменяется новым списком фаз с чекбоксами, описаниями и ссылками на таски.
-
-### 10. Обновить ./workflow/PLAN.md
-
-`Read ./workflow/PLAN.md`. Файла нет → создай минимальный с разделом «## Фичи».
-
-Найди строку фичи `{slug}`. Смени статус на `[+] Разбита на задачи`.
-
-Строки нет → добавь в раздел «## Фичи»: `- [+] {slug} — {краткое описание из feature.md}`.
-
-Хвосты в раздел «## Хвосты»:
-
-```markdown
-## Хвосты
-- ARCHITECTURE.md проекта не зафиксирован — рекомендуется запустить скил `architecture` перед имплементацией.
-```
-
-Раздела «## Хвосты» нет → создай.
-
-После обновления `PLAN.md`: `Bash rm -rf .claude/skills/task/.forge-tmp` — буфер удалён.
-
-### 11. Краткий отчёт пользователю
-
-5–8 строк на русском:
-
-- количество созданных тасков;
-- путь к папке фичи;
-- какие файлы переписаны/созданы;
-- найденные хвосты (если есть);
-- что дальше — рекомендация запустить имплементацию.
-
-## Требования к артефактам
-
-### NN-task.md
-
-- Имя: `NN-task.md`, NN с ведущим нулём, начиная с `01`.
-- Расположение: `./workflow/features/{slug}/`.
-- Гранулярность: один таск = одна фаза `plan.md`.
-- Структура: «Контекст», «Что делать», «Файлы», «Зависимости» (опционально), «Готово, когда».
-- Содержит достаточно контекста для холодного входа: суть фичи, роль фазы, связь с соседними фазами. Не дублирует `feature.md` и `plan.md` целиком — даёт выжимку.
-- Без блоков про логирование, коммиты, тестирование.
-
-### Переписанный plan.md
-
-- Расположение: `./workflow/features/{slug}/plan.md` (старый полностью заменяется).
-- Секции: заголовок, «О фиче», «Общий контекст» (опционально), «Фазы».
-- «Фазы» — список фаз с чекбоксами, ссылками на таски и короткими описаниями справа от ссылки.
-- Сохраняет общую картину фичи: читая один `plan.md`, исполнитель понимает что и зачем делается. Не голый навигатор.
-- Без даты, без branch, без commit plan, без summary в конце.
-
-## Обновление ./workflow/PLAN.md
-
-Статус фичи в `PLAN.md` после успешного завершения: `[+] Разбита на задачи`.
-
-Хвосты вне компетенции скила (отсутствие `ARCHITECTURE.md`, неясности в `plan.md`, противоречия в `feature.md`) фиксируются в раздел «## Хвосты» с явной формулировкой что не сделано и кому передавать.
-
-## Сжатие финальных артефактов
-
-Правила применяются на этапе 7 к каждому `NN-task.md` и переписанному `plan.md` перед записью в финальные файлы (этапы 8 и 9).
-
-### Что сохраняется без изменений
-
-- **Имена** файлов, путей, переменных, функций, методов, типов, классов, констант.
-- **Код-блоки** (```bash, ```yaml, ```json, ```markdown и т.д.) — содержимое не трогается.
-- **Структура** `./workflow/...` (имена файлов и папок).
-- **Сообщения об ошибках** в кавычках или код-форматировании.
-- **Числа, версии, ID, хеши, временные метки.**
-- **Внутренние заголовки** тасков и плана, если существенны для навигации.
-- **Условные ветвления** «если X — делай Y, иначе Z» — целиком, без сжатия.
-- **Предупреждения** об опасных или необратимых операциях.
-
-### Что убирается
-
-- **Филлер**: «как правило», «в общем», «в принципе», «по сути», «в действительности», «практически», «именно», «прямо», «фактически», «непосредственно», «собственно».
-- **Вежливость**: «пожалуйста», «было бы здорово», «давайте», «попробуем», «можешь сделать», «не мог бы ты».
-- **Хеджирование**: «возможно», «может быть», «вероятно», «как-то так», «по идее», «скорее всего», «в целом».
-- **Лишние обороты**: «дело в том, что», «стоит отметить, что», «важно понимать, что» → прямое утверждение.
-- **Дублирование** одной мысли в соседних предложениях — оставляй одно.
-
-### Замена короткими синонимами
-
-Где синоним сохраняет смысл:
-
-- «осуществить» → «сделать»
-- «реализовать решение для» → «решить»
-- «произвести анализ» → «проанализировать»
-- «выполнить запись» → «записать»
-- «является» → опустить или тире
-- «представляет собой» → «—» или «это»
-- «должен быть выполнен» → «выполняется» или «делай»
-
-Технические термины не заменяются. Не заменяй там, где теряется нюанс.
-
-### Ultra-приёмы
-
-- **Стрелки для причинности**: «X приводит к Y» → «X → Y».
-- **Один токен вместо двух**, если смысл сохраняется и нет двусмысленности.
-- **Фрагменты-перечисления** вместо полных предложений в списках, где каждое утверждение атомарно («`Read` файл X. `Write` файл Y.»).
-- **Сокращения общеизвестного** — только если уже используются в исходном русскоязычном контексте проекта («БД», «конфиг», «UI»). Не изобретай новых; не вводи английские аббревиатуры в русский текст без оснований.
-
-### Где НЕ применять сжатие
-
-- Условные ветвления «если X — делай Y, иначе Z».
-- Предупреждения об опасных операциях.
-- Места, где сжатие создаёт двусмысленность.
-- Описания зависимостей и побочных эффектов.
-- Имена файлов, путей, функций, констант.
-
-### Принцип
-
-Смысл и операционность важнее краткости. Не жми там, где вредно — оставляй полное предложение.
-
-## Замечания
-
-- Папка `./workflow/features/{slug}/` не существует → остановись, попроси slug.
-- `feature.md` или `plan.md` отсутствует → остановись, рекомендуй сначала запустить скил планирования. Эти файлы не создавай сам.
-- В `plan.md` нет фаз (плоский список задач без группировки) → `AskUserQuestion`: запустить планирование заново или сгруппировать задачи в фазы с подтверждением пользователя. Без явных фаз скил `task` не работает корректно — это структурное требование.
-- Фаза получилась слишком тонкой при формировании таска (1 строка в «Что делать», пустые «Файлы» или «Готово, когда») → в исходном `plan.md` фазы избыточно дробные. Через `AskUserQuestion` предложи объединить с соседней или запустить скил улучшения плана.
-- `tests.md` существует → не трогай. Тесты — задача скила тестирования.
-- `tests.md` отсутствует → не создавай. Тесты не входят в этап декомпозиции.
-- В папке уже есть `*-task.md` от прошлого запуска → `AskUserQuestion` про перезапись.
-- `ARCHITECTURE.md` отсутствует → не прерывай; зафиксируй как хвост в `PLAN.md`.
-- Неоднозначность в плане, не разрешаемая из материалов → точечный `AskUserQuestion` на этапе 5 или 6. Закрытый список вариантов, рекомендованный ответ — первым.
+- A missing `design.md`, `PROJECT.md`, or `ARCHITECTURE.md` does not stop this
+  skill. Proceed with the available context and avoid inventing constraints.
+- If `plan.md` contradicts the actual codebase, slice around what is verified
+  and record the conflict as a tail rather than guessing.
+- If the user's request is really to plan, improve, design, implement, test,
+  or document the feature, report the matching skill instead of doing that work
+  here.
+- Keep the output operational: the next agent should see the current task set,
+  not a story about how it was built.

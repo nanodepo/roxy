@@ -39,6 +39,26 @@ Forge собирает кастомный `SKILL.md` под рабочий пр�
 - Создаваемый `SKILL.md` пиши на английском. Имена скилов, MCP-инструментов, путей, ключей frontmatter, команд — в оригинале.
 - Не переноси в `SKILL.md` биографию создания, дельта-формулировки и временные заметки из `REFERENCES.md`. Итоговый скил описывает текущее правило так, чтобы исполнитель мог работать без истории его появления.
 
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
+
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
+
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
+
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
+
 ## Этапы
 
 Процедура многошаговая, с вложенными `mcp__sequential-thinking__sequentialthinking` и вопросами пользователю. Заведи в начале список из 7 пунктов в режиме планирования агента (todo-список / план задач — что доступно) и закрывай по одному. После каждого вложенного вызова следующее действие — закрыть текущий пункт и перейти к следующему.
@@ -136,7 +156,8 @@ description: >
 
 ### SKILL.md Body
 
-Use this section structure; omit sections that do not apply:
+Use this literal English section structure for the generated `SKILL.md`; omit
+sections that do not apply:
 
 ```markdown
 # {Skill Title}
@@ -152,6 +173,9 @@ No parameters -> omit this section.
 Invariants for every step: no git operations, English skill text,
 required `mcp__sequential-thinking__sequentialthinking` (if the skill is analytical),
 updating `./workflow/PLAN.md` (if the skill works with features).
+
+## Language Notice
+{standard Language Notice copied from this `forge` skill}
 
 ## Steps
 Numbered imperative steps: what to read, what to write, which tools to call.
@@ -199,6 +223,9 @@ Special cases, known constraints, and behavior when files are missing.
 
 - **Frontmatter** with `name` and `description` by the rules above.
 - **Generated skill text — in English**, with names and identifiers in their original spelling.
+- **Language Notice** copied into every generated skill so project artifacts,
+  headings, labels, placeholders, and examples follow the target project's
+  working language instead of inheriting English templates.
 - **No git operations** in any form: do not check status, create branches, commit, or push.
 - **The skill follows its instructions literally**, without shortening steps "as needed".
 - **`mcp__sequential-thinking__sequentialthinking` is required** if the skill is analytical: feature creation, planning, task breakdown, plan improvement, documentation, code analysis, or documentation analysis. `SKILL.md` explicitly instructs when to call it during reasoning steps.

@@ -1,232 +1,206 @@
 ---
 name: implement
 description: >
-  Writes the product code for a feature and toggles completed plan checkboxes,
-  working from an NN-task.md, a plan.md item, or a simple feature.md. Use for
-  "implement task", "implement feature", "write the code", "build the feature",
-  or "continue implementation".
+  Writes product code for a feature and toggles completed plan checkboxes from
+  NN-task.md, plan.md item, or simple feature.md. Triggers: implement task,
+  implement feature, write code, build feature, continue implementation.
 ---
 
 # Implement
 
 ## Purpose
 
-This skill turns an already-defined scope into working product code. It
-implements one task, one plan phase, or a simple feature taken directly from
-`feature.md`, then synchronizes actual progress in the feature's `plan.md` and
-the service status in `./workflow/PLAN.md`.
+Turn defined scope -> working product code. Scope = one task, one plan phase, or
+simple `feature.md` with clear result. Sync real progress in feature `plan.md`
+and status in `./workflow/PLAN.md`.
 
-It runs in the feature pipeline normally after `task`, but it can also work off
-`plan.md` or directly off `feature.md` for a simple feature with a clear
-result. The stages after it are `test` and `docs`.
+Normal stage: after `task`. Also can work from `plan.md` or simple
+`feature.md`. Next stages: `test`, `docs`.
 
-The skill owns implementation only. It does not create or rewrite a feature
-plan, does not write `tests.md`, does not write test code, and does not write
-documentation. Those concerns belong to `planning`, `improve`, `test`, and
-`docs`. The status in `./workflow/PLAN.md` only reflects implementation
-completion.
+Own impl only. Do not create/rewrite plans, write `tests.md`, write test code,
+or write docs. Those belong to `planning`, `improve`, `test`, `docs`.
+`./workflow/PLAN.md` status reflects impl only.
 
-## Parameters
+## Params
 
-Use `args` to name the feature and, optionally, the scope:
+Use `args`:
 
 ```txt
 <feature-slug> [scope]
 ```
 
-- `feature-slug` — the feature directory under `./workflow/features/`.
-- `scope` — optional: a task number (e.g. `03`), a phase name, or `next`.
+- `feature-slug`: dir under `./workflow/features/`.
+- `scope`: optional task number (`03`), phase name, or `next`.
 
-Resolve missing parameters:
+Resolve missing:
 
-- If `feature-slug` is absent, infer the feature from the current user message
-  and the active features in `./workflow/PLAN.md`.
-- If `scope` is absent, pick the scope source by the order in Step 1.
-- If the feature still cannot be identified, ask one short question and stop
-  until answered.
+- No `feature-slug`: infer from user msg + active features in
+  `./workflow/PLAN.md`.
+- No `scope`: choose source by Step 1 order.
+- Still unknown feature: ask one short question, stop.
 
 ## Strict Rules
 
-- Do not perform git operations in any form: no status checks, diffs, logs,
-  branches, commits, pushes, checkout, or worktree commands. The working tree
-  is expected to be dirty; the user manages git.
-- Implement only an already-defined scope. Do not create a new plan for a
-  complex feature and do not rewrite `plan.md` as a planning act — that is the
-  work of `planning` or `improve`. If a complex feature has no usable scope
-  source, stop and report that `planning` or `task` must run first.
-- Do not write `tests.md`, do not write test code, and do not write user or
-  developer documentation. Running existing tests as a verification step is
-  allowed; authoring tests is not.
-- Do not perform broad cleanup or unrelated refactoring. Allow only the small,
-  local refactor that the stated change directly requires.
-- Toggle a `plan.md` checkbox to done only when the matching behavior is
-  actually implemented in working code — never by intention.
-- Set a feature's status to `[x]` in `./workflow/PLAN.md` only when the whole
-  implementation scope of that feature is complete.
-- If `plan.md`, a task file, or `design.md` conflicts with the actual codebase,
-  stop and surface the contradiction to the user instead of guessing.
-- Write this skill's text in English. Keep project prose, code, and artifacts
-  in the project's working language; keep paths, tool names, and identifiers in
-  their original spelling.
+- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
+  Dirty tree expected; user owns git.
+- Impl only defined scope. Do not plan complex feature or rewrite `plan.md` as
+  planning. If complex feature has no usable scope source, stop: run
+  `planning` or `task` first.
+- Do not write `tests.md`, test code, user docs, or dev docs. Existing tests OK
+  for verification.
+- No broad cleanup / unrelated refactor. Only small local refactor directly
+  needed by change.
+- Toggle `plan.md` checkbox done only after matching behavior works in code.
+- Set feature `[x]` in `./workflow/PLAN.md` only when whole impl scope done.
+- If `plan.md`, task file, or `design.md` conflicts with actual code, stop and
+  report contradiction.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write chat output and generated/rewritten project artifacts in target project
+working language. Detect from `./workflow/`, docs, user request. If unclear,
+use user language.
+
+When editing existing artifact, preserve language unless user asks translate.
+
+Apply artifact language to prose, headings, table headers, labels,
+placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
+packages, status markers, product terms as-is.
+
+Do not mix languages in one artifact unless project canon already does or quote
+/ source term requires it.
 
 ## Steps
 
-For this multi-step procedure with an inner implement-and-verify cycle, use the
-agent's task planning mode (todo list / task plan, whichever is available) and
-close items one by one.
+Use task planning mode for this multi-step flow + inner impl/verify loop. Close
+items one by one.
 
-### 1. Identify the feature and working scope
+### 1. Identify feature + scope
 
 Read `./workflow/features/{slug}/feature.md` first.
 
-Then choose the scope source in this order:
+Choose scope source:
 
-1. If `./workflow/features/{slug}/NN-task.md` files exist, work from the task
-   named by `scope`, or the lowest-numbered unfinished task.
-2. If there is no task file but a `plan.md` exists, take the plan item named by
-   `scope`, the item the user pointed at, or the nearest unchecked item.
-3. If there is no plan at all, work directly from `feature.md` — but only for a
-   simple feature with a clear, bounded result.
+1. If `./workflow/features/{slug}/NN-task.md` files exist, use task named by
+   `scope`, else lowest-number unfinished task.
+2. Else if `plan.md` exists, use item named by `scope`, user-pointed item, or
+   nearest unchecked item.
+3. Else work from `feature.md` only for simple bounded feature.
 
-If the feature is complex and no usable scope source exists, stop and report
-that `planning` or `task` must run first.
+Complex feature + no usable source -> stop, report `planning` or `task` needed.
 
-### 2. Pass the readiness gate and load narrow context
+### 2. Read narrow context + gate
 
-Read the inputs that affect the change:
+Read only inputs that affect change:
 
-- `./workflow/features/{slug}/design.md` and `./workflow/DESIGN.md` — when the
-  task touches UI or user-visible interaction.
-- `./workflow/ARCHITECTURE.md` — when the task changes architecture or module
-  boundaries.
-- `./workflow/PROJECT.md` — for stack, run, and build commands.
+- `./workflow/features/{slug}/design.md` and `./workflow/DESIGN.md` for UI /
+  user-visible interaction.
+- `./workflow/ARCHITECTURE.md` for architecture / module boundaries.
+- `./workflow/PROJECT.md` for stack, run, build commands.
 
-Confirm the readiness gate before editing:
+Pass gate before edits:
 
-- The scope source is clear: an `NN-task.md`, a `plan.md` item, or a simple
-  `feature.md`.
-- The behavior that must appear is understood.
-- The constraints from design, architecture, and the project stack are known.
-- At least one local pattern is found, or it is clear why none exists.
-- Risky actions are identified up front: schema changes, dependency changes,
-  auth or security changes, data migration, destructive operations.
-- Each risky action has an explicit basis in the scope, or it is raised with
-  the user before proceeding.
+- Scope source clear: `NN-task.md`, `plan.md` item, or simple `feature.md`.
+- Required behavior understood.
+- Design, architecture, stack constraints known where relevant.
+- At least one local pattern found, or absence understood.
+- Risky actions identified: schema, deps, auth/security, migration, destructive
+  ops.
+- Each risky action grounded in scope, or raised with user first.
 
-Keep context narrow: read the files the change will touch, their related
-types, interfaces, configs, and neighboring modules — not the whole codebase.
+Keep context narrow: touched files, related types/interfaces/configs/neighbor
+modules. No whole-codebase sweep.
 
-### 3. Locate the files to change and a local pattern
+### 3. Locate files + pattern
 
-Find the exact files the change touches and at least one existing example of a
-similar pattern in the codebase. Follow that pattern's structure, naming, and
-module boundaries so the change does not introduce an accidental abstraction.
+Find exact files to change and one similar local pattern. Follow its structure,
+naming, module boundaries. Avoid accidental abstraction.
 
-If the change depends on an unstable API, a new library version, framework
-conventions, or a deprecation, check the current official documentation rather
-than implementing from memory. Note briefly in the final report what was
-checked when external documentation influenced the code.
+If change depends on unstable API, new library version, framework convention, or
+deprecation, check current official docs instead of memory. Final report notes
+what docs influenced code.
 
-### 4. Write a short execution outline
+### 4. Write short outline
 
-For yourself, state in a few lines: what changes, where, and how the result
-will be verified. For a complex task, order the work by dependency, not by
-visible importance.
+For self: what changes, where, verify how. Complex task: order by dependency.
 
-### 5. Implement in thin, verifiable slices
+### 5. Impl thin slices
 
-Work the chosen scope item until it is done or blocked:
+Work chosen scope until done or blocked:
 
-- Implement one minimal, complete slice of behavior at a time.
-- Do not write a large body of code before the first verification.
-- Verify each slice by the available means: build, lint, typecheck, existing
-  tests, manual check, or careful static review.
-- Each slice must leave the project in a working or explicitly diagnosed state.
-- Do not parallelize dependent edits without need.
-- Repeat the cycle for the next slice.
+- Impl one minimal complete behavior slice.
+- Verify before large next code body.
+- Verify via available check: build, lint, typecheck, existing tests, manual
+  check, or static review.
+- Each slice leaves project working or explicitly diagnosed.
+- No dependent edit parallelism without need.
+- Repeat.
 
-### 6. Handle a failed verification
+### 6. Failed verification
 
-If a build, linter, runtime, or manual check breaks:
+On build/lint/runtime/manual failure:
 
-- Stop adding new functionality.
-- Capture short evidence: the command, the error, the affected file, and the
-  observed behavior.
-- Diagnose the minimal cause and fix it within the current scope, without
-  mixing in new scope.
-- If the error lies outside the current task, raise it with the user or record
-  it as a tail instead of expanding the work.
+- Stop adding feature work.
+- Capture evidence: command, error, affected file, observed behavior.
+- Diagnose minimal cause; fix inside current scope.
+- If outside task, raise with user or record tail. Do not expand scope.
 
-### 7. Synchronize progress in plan.md
+### 7. Sync `plan.md`
 
-After a scope item is implemented:
+After scope item works:
 
-- Toggle its `plan.md` checkbox to done only when the behavior is actually
-  working.
-- If an item is only partially done, leave its checkbox unchecked and add a
-  short tail describing what remains.
-- If the task was done differently than the plan describes, reword that
-  `plan.md` item so the artifact reflects the real state.
-- If a new mandatory sub-item is discovered, add it to `plan.md` as an
-  unchecked tail.
+- Toggle checkbox done only when behavior works.
+- Partial item stays unchecked; add short tail for remainder.
+- If impl differs from plan wording, reword item to current truth.
+- If mandatory sub-item found, add unchecked tail.
 
-### 8. Run a light self-check
+### 8. Self-check
 
-Before finishing, review the change:
+Before finish, verify:
 
-- Correctness — the stated behavior works; edge cases in the current scope are
-  not ignored.
-- Fit — the code follows local patterns, naming, and module boundaries.
-- Simplicity — no extra abstraction, no broad cleanup, no unrelated rewriting.
-- Safety — user input, auth, secrets, external data, and destructive actions
-  are handled carefully.
-- Verification — an available check was run, or it is stated explicitly why it
-  could not be.
-- Workflow — checkboxes, feature status, and tails reflect the real state.
+- Correctness: stated behavior works; in-scope edge cases handled.
+- Fit: local patterns, naming, module boundaries.
+- Simplicity: no extra abstraction, broad cleanup, unrelated rewrite.
+- Safety: user input, auth, secrets, external data, destructive ops.
+- Verification: check run, or reason not run.
+- Workflow: checkboxes, feature status, tails match reality.
 
-### 9. Update the feature status and record tails
+### 9. Update status + tails
 
-If the whole implementation scope of the feature is now complete, set its
-status to `[x]` in `./workflow/PLAN.md`.
+If whole feature impl scope done, set `[x]` in `./workflow/PLAN.md`.
 
-If work remains for `test`, `docs`, `planning`, `design`, or the user, record
-it as a tail — in `plan.md` for feature-level follow-up, or in
-`./workflow/PLAN.md` for cross-stage follow-up. Do not mask unfinished work as
-done.
+If work remains for `test`, `docs`, `planning`, `design`, or user, record tail:
+feature-level in `plan.md`, cross-stage in `./workflow/PLAN.md`. Do not mark
+unfinished work done.
 
 ## Artifact Requirements
 
-This skill produces no separate report file. Its artifacts are:
+No report file. Artifacts:
 
-- **Product code changes** in the project, scoped to the chosen task, phase, or
-  simple feature.
-- **Updated `plan.md`** — checkboxes that match actual progress and item
-  wording that matches the real implementation, plus any newly discovered
-  tails.
-- **Updated `./workflow/PLAN.md`** — the feature's service status set to `[x]`
-  only when the whole implementation scope is complete.
+- Product code changes, scoped to chosen task/phase/simple feature.
+- Updated `plan.md`: real checkboxes, wording matching impl, new tails.
+- Updated `./workflow/PLAN.md`: `[x]` only when whole impl scope complete.
 
 ## Updating PLAN.md
 
-At the end, touch `./workflow/PLAN.md` only to:
+At end, touch `./workflow/PLAN.md` only to:
 
-- set the feature status to `[x]` when its entire implementation scope is done;
-- append cross-stage tails the implementation revealed.
+- set feature `[x]` when entire impl scope done;
+- append cross-stage tails found by impl.
 
-Do not change other features' statuses and do not rewrite unrelated entries.
-The status markers are: `[ ]` new, `[-]` planned, `[+]` split into tasks,
-`[x]` implemented, `[*]` tested, `[/]` archived.
+Do not alter other feature statuses or unrelated entries. Status markers:
+`[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]` implemented, `[*]`
+tested, `[/]` archived.
 
 ## Notes
 
-- A missing `design.md`, `ARCHITECTURE.md`, `DESIGN.md`, or `PROJECT.md` does
-  not stop this skill — proceed on the available context and note any
-  constraint that could not be confirmed.
-- If the request is really a planning, design, test, or documentation request,
-  report the matching skill and do not implement outside this skill's scope.
-- If the scope is too vague to implement safely, do not invent requirements
-  inside this skill — ask one short question or hand the work back to
-  `planning`.
-- Write only the current state of code and artifacts. Do not leave biography,
-  "previously / now" comparisons, or migration commentary in the code or in
-  `plan.md`.
+- Missing `design.md`, `ARCHITECTURE.md`, `DESIGN.md`, or `PROJECT.md` does not
+  stop skill. Proceed from available context; note unknown constraint.
+- If request is planning, design, test, or docs, report matching skill; do not
+  implement outside scope.
+- If scope too vague for safe impl, do not invent reqs. Ask one short question
+  or hand back to `planning`.
+- Write current state only. No biography, "previously/now" comparisons, or
+  migration commentary in code or `plan.md`.

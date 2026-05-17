@@ -46,11 +46,6 @@ below as its working base; no other file is required.
 - Do not perform git operations in any form: no status checks, diffs, logs,
   branches, commits, pushes, or checkout commands. The working tree is expected
   to be dirty; the user manages git.
-- Write this skill's own reasoning and the chat summary in English. Keep tool
-  names, paths, and identifiers in their original spelling.
-- Preserve the language of the document being normalized. If the file is written
-  in Russian, the rewritten file stays in Russian; normalize content, not
-  language.
 - Call `mcp__sequential-thinking__sequentialthinking` at the analysis step
   (Step 4), after reading the document and its context and before rewriting.
   This is the reasoning step where the per-law normalization plan is built.
@@ -60,6 +55,26 @@ below as its working base; no other file is required.
   plus a short chat summary.
 - Do not follow or fetch external links. Work only with local context.
 - Do not change the meaning of any law below when applying it.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
+
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
+
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
+
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
 ## The Markov Laws
 
@@ -329,8 +344,8 @@ plan, whichever is available) with one item per step and close them in order.
    - preserves the document's original language and its still-valid content.
    The result should look boring — as if the stale material never had authority.
 
-6. **Report to chat.** Write a short English summary: the file path, its type,
-   and the classes of problems fixed (for example: biography removed, deltas
+6. **Report to chat.** Write a short chat summary: the file path, its type, and
+   the classes of problems fixed (for example: biography removed, deltas
    collapsed, stale rule deleted, conflicting statements resolved, test names
    normalized, obvious test dropped, clutter cut). If nothing needed changing,
    say so plainly. State that the file was rewritten in place so the user can
@@ -340,8 +355,8 @@ plan, whichever is available) with one item per step and close them in order.
 
 - **The rewritten document** — the file passed in `args`, overwritten in place.
   Same path, same purpose, same language; normalized content.
-- **Chat summary** — a short English report of the file, its type, and the
-  problem classes fixed. No separate report file is created.
+- **Chat summary** — a short report of the file, its type, and the problem
+  classes fixed. No separate report file is created.
 
 ## Notes
 

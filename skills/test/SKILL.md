@@ -2,203 +2,195 @@
 name: test
 description: >
   Covers implemented features with behavior-focused tests, records tests.md,
-  runs verification, and marks PLAN.md [*] only after a fresh pass. Use for
-  "test feature", "write tests", "cover feature", or "verify feature".
+  runs verification, and marks PLAN.md [*] only after fresh pass. Triggers:
+  test feature, write tests, cover feature, verify feature.
 ---
 
 # Test
 
 ## Purpose
 
-`test` covers an implemented feature with meaningful checks. It owns the
-feature's `./workflow/features/{slug}/tests.md`, the project test code written
-for that feature, and the tested status in `./workflow/PLAN.md`.
+Cover implemented feature with meaningful checks. Owns feature
+`./workflow/features/{slug}/tests.md`, project test code for that feature, and
+tested status in `./workflow/PLAN.md`.
 
-It runs after `implement`. It reads feature artifacts, the implemented code, and
-the project test setup, then writes tests that protect current behavior
-invariants. It does not plan implementation, does not change product code, does
-not write documentation, and performs no git operations.
+Runs after `implement`. Reads feature artifacts, implemented code, project test
+setup. Writes tests protecting current behavior invariants. Does not plan impl,
+change product code, write docs, or perform git ops.
 
-## Parameters
+## Params
 
-Use `args` to name the feature and, optionally, a narrower scope:
+Use `args`:
 
 ```txt
 <feature-slug> [scope]
 ```
 
-- `<feature-slug>` - the feature directory under
-  `./workflow/features/{slug}/`.
-- `scope` - optional: a task number, plan item, component, module, or test area
-  to focus on.
+- `<feature-slug>`: feature dir under `./workflow/features/{slug}/`.
+- `scope`: optional task number, plan item, component, module, or test area.
 
-Resolve missing parameters:
+Resolve missing:
 
-- If `<feature-slug>` is absent, infer it from the user message and active
-  feature entries in `./workflow/PLAN.md`.
-- If multiple features match, ask one short question and stop until the user
-  names the feature.
-- If `scope` is absent, test the implemented feature behavior broadly enough to
-  cover the relevant invariants.
+- No `<feature-slug>`: infer from user msg + active entries in
+  `./workflow/PLAN.md`.
+- Multiple matches: ask one short question, stop.
+- No `scope`: test implemented behavior broadly enough for relevant
+  invariants.
 
 ## Strict Rules
 
-- Do not perform git operations in any form: no status checks, diffs, logs,
-  branches, commits, pushes, checkout, or worktree commands. The working tree is
-  expected to be dirty; the user manages git.
-- Do not change product code. If a test fails because the implemented behavior
-  is wrong, report the failing invariant and leave the fix to `implement` or the
-  user unless the user explicitly changes scope.
-- **`mcp__sequential-thinking__sequentialthinking` is required** at the test
-  planning step (Step 5). Choosing invariants, risks, test levels, commands, and
-  residual gaps is analytical work.
-- Write tests for live behavior invariants, not for incidents, removed behavior,
-  or obvious language mechanics.
-- Use the existing project test framework, file layout, naming style, fixtures,
-  helpers, and assertion style unless the project has no usable test pattern.
-- Choose the cheapest test level that proves the invariant. Do not use E2E when
-  a unit, integration, or component test proves the same behavior reliably.
-- Set the feature status to `[*]` in `./workflow/PLAN.md` only after a fresh
-  verification command succeeds and its result is recorded in `tests.md`.
-- If tests are not run, or the verification command fails, do not set status
-  `[*]`.
-- Write this skill's text in English. Keep project prose, code, and artifacts
-  in the project's working language; keep paths, tool names, commands, and code
-  identifiers in their original spelling.
+- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
+  Dirty tree expected; user owns git.
+- Do not change product code. If test fails because behavior wrong, report
+  failing invariant; leave fix to `implement` or user unless scope changes.
+- `mcp__sequential-thinking__sequentialthinking` required at Step 5. Choosing
+  invariants, risks, levels, cmds, residual gaps = analytical work.
+- Test live behavior invariants, not incidents, removed behavior, or obvious
+  language mechanics.
+- Use existing test framework, layout, naming, fixtures, helpers, assertion
+  style unless no usable pattern exists.
+- Choose cheapest level proving invariant. No E2E when unit/integration/component
+  proves behavior reliably.
+- Set feature `[*]` in `./workflow/PLAN.md` only after fresh verification cmd
+  succeeds and result recorded in `tests.md`.
+- If tests not run or verification fails, do not set `[*]`.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write chat output and generated/rewritten project artifacts in target project
+working language. Detect from `./workflow/`, docs, user request. If unclear,
+use user language.
+
+When editing existing artifact, preserve language unless user asks translate.
+
+Apply artifact language to prose, headings, table headers, labels,
+placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
+packages, status markers, product terms as-is.
+
+Do not mix languages in one artifact unless project canon already does or quote
+/ source term requires it.
 
 ## Steps
 
-For this multi-step procedure with a nested analytical call, use the agent's
-task planning mode (todo list / task plan, whichever is available) and close
+Use task planning mode for this multi-step flow + nested analytical call. Close
 items one by one.
 
-### 1. Identify the feature and scope
+### 1. Identify feature + scope
 
-Parse `args` and identify `./workflow/features/{slug}/`.
+Parse `args`; identify `./workflow/features/{slug}/`.
 
-Read `./workflow/PLAN.md` if it exists to confirm the feature status and find
-the entry that must be updated later. Then confirm
-`./workflow/features/{slug}/feature.md` exists. If the feature cannot be
-identified, ask the user for the slug and stop.
+Read `./workflow/PLAN.md` if exists to confirm feature status and later update
+entry. Confirm `./workflow/features/{slug}/feature.md` exists. If feature
+unknown, ask slug and stop.
 
-### 2. Read feature and project context
+### 2. Read feature + project ctx
 
-Read the feature context:
+Read feature ctx:
 
-- `./workflow/features/{slug}/feature.md` - required.
-- `./workflow/features/{slug}/plan.md` - if it exists.
-- `./workflow/features/{slug}/design.md` - if it exists.
-- `./workflow/features/{slug}/NN-task.md` files - if they exist.
-- `./workflow/features/{slug}/tests.md` - if it exists.
+- `./workflow/features/{slug}/feature.md`: required.
+- `./workflow/features/{slug}/plan.md`: if exists.
+- `./workflow/features/{slug}/design.md`: if exists.
+- `./workflow/features/{slug}/NN-task.md` files: if exist.
+- `./workflow/features/{slug}/tests.md`: if exists.
 
-Read project context:
+Read project ctx:
 
-- `./workflow/PROJECT.md` - for stack, run commands, test commands, and service
-  setup.
-- `./workflow/ARCHITECTURE.md` - when module boundaries affect test placement.
-- `./workflow/DESIGN.md` - when UI behavior or visual interaction is in scope.
+- `./workflow/PROJECT.md`: stack, run cmds, test cmds, service setup.
+- `./workflow/ARCHITECTURE.md`: when module boundaries affect test placement.
+- `./workflow/DESIGN.md`: when UI behavior / visual interaction in scope.
 
-### 3. Discover the test setup
+### 3. Discover test setup
 
-Find the project's existing test framework and commands from `PROJECT.md`,
-package scripts, config files, lock files, test directories, and neighboring
-tests.
+Find existing framework + cmds from `PROJECT.md`, package scripts, configs,
+lock files, test dirs, nearby tests.
 
-Inspect nearby tests before writing new ones. Capture:
+Inspect nearby tests before writing. Capture:
 
 - naming conventions;
 - file placement;
-- fixture and helper patterns;
+- fixture/helper patterns;
 - mocking style;
-- test data setup and cleanup;
-- command used for targeted and readiness verification.
+- test data setup/cleanup;
+- targeted + readiness verification cmds.
 
-If no test command is documented, infer the most likely command from the actual
-stack and record the chosen command in `tests.md`. If multiple commands are
-equally plausible and choosing one could create misleading status, ask the user
-which command proves readiness.
+If no test cmd documented, infer likely cmd from actual stack and record choice
+in `tests.md`. If multiple plausible cmds and wrong choice could mislead
+status, ask user which cmd proves readiness.
 
-### 4. Inspect the implemented behavior
+### 4. Inspect implemented behavior
 
-Read the implemented code in scope, including entry points, adapters, public
-interfaces, UI components, routes, state transitions, and persistence paths that
-the feature affects.
+Read in-scope code: entry points, adapters, public interfaces, UI components,
+routes, state transitions, persistence paths.
 
-Use the code as the source of truth for what exists. Use feature artifacts to
-understand intended behavior and risks. If the artifacts and code contradict
-each other in a way that changes what should be tested, stop and report the
+Code = source of truth for existence. Feature artifacts = intended behavior +
+risks. If artifacts and code contradict what should be tested, stop and report
 contradiction.
 
 ### 5. Plan tests with sequential thinking
 
-Call `mcp__sequential-thinking__sequentialthinking` to decide:
+Call `mcp__sequential-thinking__sequentialthinking`. Decide:
 
-- the behavior invariants that deserve tests;
-- the risk each invariant protects;
-- the cheapest sufficient test level for each invariant:
-  - unit - pure logic, validation, transformations, branching;
-  - integration - module interaction, API, database, adapters;
-  - component/UI - component state, events, accessibility of important actions;
-  - e2e - critical user paths or cross-system behavior that cannot be proven
-    more cheaply;
-- existing test helpers and fixtures to reuse;
-- dependencies to keep real and dependencies to mock because they are external,
-  expensive, unstable, or unavailable;
-- targeted verification commands and the readiness command;
-- residual gaps that should remain visible in `tests.md`.
+- behavior invariants worth testing;
+- risk each invariant protects;
+- cheapest sufficient level:
+  - unit: pure logic, validation, transforms, branching;
+  - integration: module interaction, API, DB, adapters;
+  - component/UI: component state, events, accessibility of key actions;
+  - e2e: critical user paths / cross-system behavior not cheaper to prove;
+- existing helpers/fixtures to reuse;
+- deps kept real vs mocked because external, costly, unstable, unavailable;
+- targeted verification cmds + readiness cmd;
+- residual gaps to show in `tests.md`.
 
-Fix the result as a short test plan before editing files.
+Fix result as short test plan before edits.
 
-### 6. Write or update tests
+### 6. Write/update tests
 
-Write tests in the project style and keep each test focused on one invariant.
+Write tests in project style. One test focuses on one invariant.
 
 Quality rules:
 
-- Name tests by current behavior, not by bug IDs, removed UI, or implementation
-  details.
-- Use clear arrange-act-assert structure when the local framework does not imply
-  a different convention.
-- Keep tests independent of execution order.
-- Set up and clean up state inside the test, fixture, or accepted project
-  helper.
-- Control time, randomness, network, shared state, and external services.
-- Use parameterization for equivalent boundary cases.
-- Avoid assertions that only prove the language, framework, or a trivial getter.
-- Do not assert internal implementation details when visible behavior or public
-  contracts prove the invariant.
+- Name tests by current behavior, not bug IDs, removed UI, impl details.
+- Use arrange-act-assert unless local framework implies other convention.
+- Tests independent of execution order.
+- Setup/cleanup state inside test, fixture, or accepted helper.
+- Control time, randomness, network, shared state, external services.
+- Use parameterization for equivalent boundaries.
+- Avoid assertions proving language/framework/trivial getter only.
+- Do not assert internals when visible behavior/public contract proves
+  invariant.
 
-For dynamic web UI, start or reuse the local server, wait for a stable rendered
-state, inspect the rendered DOM or screenshot before choosing selectors, prefer
-stable selectors such as role, label, visible text, or test id, and verify the
-user action plus visible result. Add Playwright only when the existing stack
-does not prove the behavior more cheaply.
+Dynamic web UI: start/reuse local server, wait for stable render, inspect DOM or
+screenshot before selectors, prefer role/label/visible text/test id, verify user
+action + visible result. Add Playwright only when existing stack cannot prove
+behavior cheaper.
 
 ### 7. Run verification
 
-Run the smallest useful command first when it gives faster feedback, then run
-the readiness command that proves the feature's tested status.
+Run smallest useful cmd first for feedback, then readiness cmd proving tested
+status.
 
-For every command, read the exit code and output. Do not claim success from an
-assumption. If a command is intentionally scoped, record the scope and reason in
-`tests.md`.
+For every cmd, read exit code + output. Do not claim success by assumption. If
+cmd scoped intentionally, record scope + reason in `tests.md`.
 
 If verification fails:
 
-- stop adding new tests;
-- identify the failing invariant, file, command, and observed output;
-- fix test-code mistakes within this skill's scope;
+- stop adding tests;
+- identify failing invariant, file, cmd, observed output;
+- fix test-code mistakes within scope;
 - do not modify product code;
-- leave `./workflow/PLAN.md` unchanged unless it already contains an accurate
+- leave `./workflow/PLAN.md` unchanged unless it already has accurate
   non-tested status;
-- record the failure or residual gap in `tests.md` and report it to the user.
+- record failure/residual gap in `tests.md` and report.
 
-### 8. Write tests.md
+### 8. Write `tests.md`
 
-Create or update `./workflow/features/{slug}/tests.md` as the current test map
-for the feature.
+Create/update `./workflow/features/{slug}/tests.md` as current feature test map.
 
-Use this structure:
+Use semantic structure. Translate visible headings, field labels, table headers,
+placeholders, examples:
 
 ```md
 # Tests
@@ -223,57 +215,45 @@ Briefly name the feature behavior covered.
 - `<uncovered behavior or risk, with reason>`
 ```
 
-Write `tests.md` in the present tense. Do not include history, deltas, release
-notes, bug biography, or temporary work logs. If there are no meaningful gaps,
-write `- None known from the current scope.`
+Write present tense. No history, deltas, release notes, bug biography, temp
+logs. If no meaningful gaps: `- None known from the current scope.`
 
 ### 9. Update PLAN.md
 
-If the readiness command succeeded, update only this feature's service status in
+If readiness cmd succeeded, update only this feature service status in
 `./workflow/PLAN.md` to `[*]`.
 
-Do not change unrelated entries. Do not set `[*]` for partial verification,
-failed verification, skipped verification, or tests that were only written but
-not run.
+Do not change unrelated entries. Do not set `[*]` for partial, failed, skipped,
+or only-written-not-run verification.
 
-The status markers are: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
+Status markers: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
 implemented, `[*]` tested, `[/]` archived.
 
 ### 10. Report
 
-Give a short report with:
+Report briefly:
 
-- the feature tested;
-- tests added or updated;
-- verification command and result;
-- whether `./workflow/PLAN.md` was updated to `[*]`;
-- residual gaps or blockers, if any.
+- feature tested;
+- tests added/updated;
+- verification cmd + result;
+- whether `./workflow/PLAN.md` updated to `[*]`;
+- residual gaps/blockers, if any.
 
 ## Artifact Requirements
 
-This skill produces:
+Produces:
 
-- **`./workflow/features/{slug}/tests.md`** - the feature's current test map,
-  written around behavior invariants.
-- **Project test code** - tests in the existing test framework and local style.
-- **Updated `./workflow/PLAN.md`** - the feature status set to `[*]` only after a
-  fresh successful verification command.
-
-## Updating PLAN.md
-
-At the end, touch `./workflow/PLAN.md` only to set the tested feature's status
-to `[*]` after successful verification. Do not update other feature statuses and
-do not rewrite unrelated tails.
-
-If verification does not pass, leave the status as it is and report what blocks
-the tested status.
+- `./workflow/features/{slug}/tests.md`: current feature test map around
+  behavior invariants.
+- Project test code: tests in existing framework + local style.
+- Updated `./workflow/PLAN.md`: feature `[*]` only after fresh successful
+  verification cmd.
 
 ## Notes
 
-- Coverage tools are useful for finding blind spots, but coverage percentages
-  are not the goal. The goal is protecting meaningful behavior and risk.
-- Add accessibility, security, performance, compatibility, or cross-browser
-  checks only when the feature's behavior or risk profile calls for them.
-- Regression tests must encode the product invariant that should keep holding.
-  The test name and `tests.md` entry describe normal behavior, not the incident
-  that motivated the check.
+- Coverage tools help find blind spots; percent is not goal. Goal = protect
+  meaningful behavior + risk.
+- Add accessibility/security/performance/compat/cross-browser checks only when
+  feature behavior or risk profile calls for them.
+- Regression tests encode product invariant that should keep holding. Test name
+  and `tests.md` describe normal behavior, not incident that motivated check.

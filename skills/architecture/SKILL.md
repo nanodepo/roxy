@@ -11,161 +11,109 @@ description: >
 
 ## Purpose
 
-This skill picks the project's architectural pattern and records it as the
-current canon in `./workflow/ARCHITECTURE.md`. It owns one concern: the
-architectural pattern, module boundaries, and the rules for where code goes.
+Select current architecture canon; write `./workflow/ARCHITECTURE.md`.
 
-It runs after `initialize` and ideally after `roadmap`. Its canon is read by
-later stages — planning, plan improvement, task breakdown, implementation,
-testing, and documentation — so a feature-implementing agent can tell where to
-put new code, which boundaries not to cross, and which architectural style is
-current.
+Scope: pattern, module boundaries, code placement rules. Runs after `initialize`, ideally after `roadmap`. Later stages read this canon for feature planning, improvement, task split, implementation, testing, docs.
 
-The skill does not write product code, does not perform refactoring, does not
-create feature plans, and does not write tests. Architecture is a decision
-recorded as canon; executing that decision belongs to the feature stages.
+Do not write product code, refactor, create feature plans, or write tests. Architecture = recorded canon; feature stages execute it.
 
 ## Strict Rules
 
-- **No git operations.** Do not check status, diff, branch, commit, or push.
-  The working tree is expected to be dirty; the user manages git.
-- **`mcp__sequential-thinking__sequentialthinking` is required** at the
-  reasoning step (Step 3). Selecting a pattern and defining boundaries is
-  analytical work and must not be improvised.
-- **Canon, not history.** `ARCHITECTURE.md` describes the architecture that is
-  current — in the present tense. Never write decision logs, status lifecycles
-  (proposed / accepted / deprecated), or "previously X, now Y" comparisons. A
-  superseded rule is simply absent.
-- **Stay inside the boundary.** Do not edit product code, do not refactor, do
-  not write feature plans or tests. Follow-up work goes into `./workflow/PLAN.md`
-  as architectural tails only.
-- Write `ARCHITECTURE.md` and this skill's text in English-style precision but
-  in the user's working language for prose; keep pattern names, tool names,
-  paths, and code identifiers in their original spelling.
-- Use one term for one concept throughout the artifact.
+- **No git operations.** Do not check status, diff, branch, commit, push. Dirty tree expected; user owns git.
+- **Use task planning mode.** Create todo/task plan for this multi-step work; close items one by one.
+- **`mcp__sequential-thinking__sequentialthinking` required** in Step 3. Pattern + boundaries are analytical work.
+- **Canon, not history.** `ARCHITECTURE.md` states current architecture in present tense. No decision logs, proposed/accepted/deprecated lifecycle, or "previously X, now Y". Superseded rules are absent.
+- **Stay in boundary.** Do not edit product code, refactor, write feature plans, or write tests. Put follow-up only as architectural tails in `./workflow/PLAN.md`.
+- Use one term per concept.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write chat output and generated/rewritten project artifacts in target project working language. Detect from `./workflow/`, docs, and user request. If unclear, use user's current language.
+
+When editing existing artifact, preserve language unless user asks translation.
+
+Apply artifact language to prose, headings, table headers, labels, placeholders, examples. Keep paths, commands, tool names, code identifiers, framework/package names, status markers, and established product terms unchanged.
+
+Do not mix languages inside one artifact unless existing canon or source term requires it.
 
 ## Steps
 
-For this multi-step procedure, use the agent's task planning mode (todo list /
-task plan, whichever is available) and close items one by one.
+### 1. Gather Context
 
-### 1. Gather context
+Read existing inputs:
 
-Read whichever of these exist:
-
-- `./workflow/PROJECT.md` — tech stack, run, deploy.
-- `./workflow/VISION.md` — ideological vision.
+- `./workflow/PROJECT.md` — stack, run, deploy.
+- `./workflow/VISION.md` — product ideology.
 - `./workflow/ROADMAP.md` — development goals.
-- `./workflow/ARCHITECTURE.md` or any other existing architecture document.
+- `./workflow/ARCHITECTURE.md` or other architecture doc.
 
-Then scan the source tree: top-level directory names and nesting, where
-business logic lives, and how modules reference each other.
+Scan source tree: top-level dirs, nesting, business-logic location, module refs.
 
-If an input file is missing, continue with the remaining input — note in the
-reasoning step that the decision rests on a narrower base.
+If input missing, continue. Note narrower basis in reasoning.
 
-### 2. Detect the pattern that is already in force
+### 2. Detect Acting Pattern
 
-Before choosing anything, determine which pattern the project de facto follows
-now, using these heuristics:
+Determine de facto current pattern before choosing canon. Check:
 
-- **Directory names and nesting** — `controllers/services/repositories` or
-  `domain/application/infrastructure` or `features/*` signal different styles.
-- **Dependency direction between layers** — does it flow inward toward the
-  domain, or do layers depend on each other freely?
-- **Where business logic sits** — inside controllers, inside dedicated domain
-  modules, or scattered.
-- **Explicit boundaries** — presence of ports, adapters, module manifests, or
-  package isolation.
+- Directory names/nesting: `controllers/services/repositories`, `domain/application/infrastructure`, `features/*`.
+- Dependency direction: inward to domain or free cross-layer refs.
+- Business logic location: controllers, domain modules, scattered.
+- Explicit boundaries: ports, adapters, module manifests, package isolation.
 
-State plainly which pattern is acting now. This is the baseline for deciding
-whether to keep it or change it.
+State acting pattern plainly. Use it as baseline for keep/change decision.
 
-### 3. Choose the canon with `mcp__sequential-thinking__sequentialthinking`
+### 3. Choose Canon With Sequential Thinking
 
-Call `mcp__sequential-thinking__sequentialthinking` and work through:
+Call `mcp__sequential-thinking__sequentialthinking`. Work through:
 
-- **Compare candidates** from the catalog below against the project context —
-  scale, team size, and the goals in `ROADMAP.md`. A small project does not get
-  microservices because they exist; the pattern must match the context.
-- **Decide keep vs. change.** If the acting pattern fits, confirm it. If it does
-  not, select a better one and capture the rationale in 1–2 lines.
-- **Define module boundaries** — what may depend on what, and what must not.
-- **Define code placement** — where new code of each kind goes.
-- **Define cross-cutting concerns** — authentication, error handling, logging,
-  validation, configuration.
-- **Define naming and structure conventions.**
+- Compare candidates vs project context: scale, team size, `ROADMAP.md` goals.
+- Decide keep/change. If acting pattern fits, confirm. If not, select better pattern and give 1-2 line rationale.
+- Define module boundaries: allowed deps, forbidden deps.
+- Define code placement: where each code kind belongs.
+- Define cross-cutting concerns: auth, errors, logging, validation, config.
+- Define naming and structure conventions.
 
-A good boundary keeps related logic together and exposes a small surface;
-prefer that as the test of a boundary.
+Boundary test: related logic stays together; public surface stays small.
 
-**Pattern catalog** (pick by fit; do not include code samples):
+Pattern catalog, pick by fit, no code samples:
 
-- **Layered** — clear horizontal layers; small-to-medium apps with simple flows.
-- **Modular monolith** — one deployable, strong internal module boundaries;
-  most growing products.
-- **Clean / Hexagonal** — domain isolated behind ports and adapters; logic-heavy
-  systems that must stay testable and framework-agnostic.
-- **DDD (strategic)** — bounded contexts and a shared language; large domains
-  with real business complexity.
-- **Microservices** — independently deployable services; large teams and
-  independent scaling needs only.
-- **Event-driven** — components communicate via events; asynchronous,
-  high-throughput, or loosely coupled flows.
-- **MVVM / MVU** — UI state patterns; client and front-end applications.
-- **Serverless** — functions as the unit of deployment; event-triggered,
-  spiky, or low-ops workloads.
+- **Layered** — horizontal layers; small/medium apps with simple flows.
+- **Modular monolith** — one deployable, strong internal module boundaries; growing products.
+- **Clean / Hexagonal** — domain behind ports/adapters; logic-heavy, testable, framework-agnostic systems.
+- **DDD (strategic)** — bounded contexts + shared language; large complex domains.
+- **Microservices** — independently deployable services; large teams + independent scaling only.
+- **Event-driven** — event communication; async, high-throughput, loose coupling.
+- **MVVM / MVU** — UI state patterns; client/front-end apps.
+- **Serverless** — functions as deployment unit; event-triggered, spiky, low-ops workloads.
 
-If a change of pattern would force refactoring of existing code, confirm the
-change with the user before writing it as canon, since it carries follow-up
-cost.
+If new canon implies refactoring existing code, ask user before writing it as canon.
 
 ### 4. Write `./workflow/ARCHITECTURE.md`
 
-Create or update `./workflow/ARCHITECTURE.md` per the section checklist in
-*Artifact Requirements*. Overwrite outdated content; do not append it as a
-revision history.
+Create/update `./workflow/ARCHITECTURE.md` using Artifact Requirements. Overwrite stale content; do not append revision history.
 
-### 5. Record architectural tails in `./workflow/PLAN.md`
+### 5. Record Architectural Tails
 
-If the chosen canon requires follow-up work (e.g. a module must be moved to fit
-the new boundaries), append those items to `./workflow/PLAN.md` as architectural
-tails. Do not create feature plans and do not change feature statuses — this
-skill only adds architectural follow-up notes.
+If canon needs follow-up work, append architectural tails to `./workflow/PLAN.md`.
+
+Do not create feature plans, add feature entries, or change feature statuses. Architecture is not a feature.
 
 ## Artifact Requirements
 
-`./workflow/ARCHITECTURE.md` must answer every question a feature agent needs.
-Include these sections:
+`./workflow/ARCHITECTURE.md` must answer what feature agents need:
 
-- **Pattern** — the chosen pattern and a 1–2 line rationale tied to project
-  scale, team, and roadmap goals.
-- **Module boundaries and dependency rules** — what may depend on what; what is
-  forbidden.
+- **Pattern** — chosen pattern + 1-2 line rationale tied to scale, team, roadmap.
+- **Module boundaries and dependency rules** — allowed deps, forbidden deps.
 - **Code placement** — where new code of each kind goes.
-- **Cross-cutting concerns** — authentication, error handling, logging,
-  validation, configuration.
+- **Cross-cutting concerns** — auth, errors, logging, validation, config.
 - **Naming and structure conventions.**
 
-Diagrams (C4 / UML / Mermaid) are optional — add one only if it clarifies the
-canon; never make it a required step.
+Diagrams (C4 / UML / Mermaid) optional. Add only when they clarify canon.
 
-Keep the document tight:
+Keep document tight:
 
-- Write only the current state, in the present tense.
-- No biography of how the architecture evolved, no "previously / now", no
-  decision lifecycle.
-- No operational chatter — every line is a rule a feature agent can act on.
-
-## Updating PLAN.md
-
-At the end, touch `./workflow/PLAN.md` only to append architectural tails from
-Step 5 — follow-up work the chosen canon implies. Do not add feature entries and
-do not modify feature statuses; architecture is not a feature.
-
-## Notes
-
-- The skill works with partial input: if `PROJECT.md`, `VISION.md`, or
-  `ROADMAP.md` is missing, proceed on the available context and the source tree.
-- If `ARCHITECTURE.md` already exists, treat it as input, then rewrite it to the
-  current canon — do not keep stale rules side by side with new ones.
+- Current state only, present tense.
+- No evolution biography, "previously / now", or decision lifecycle.
+- No operational chatter. Every line = rule feature agent can act on.

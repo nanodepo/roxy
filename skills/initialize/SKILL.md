@@ -1,150 +1,165 @@
 ---
 name: initialize
 description: >
-  Bootstraps a project for the agent workflow — creates the ./workflow/
-  structure, records technical context in ./workflow/PROJECT.md, and seeds
-  ./workflow/PLAN.md with routing tails. Use when the user says "инициализируй
-  проект", "подготовь проект к работе", "создай workflow", or "забутстрапь
-  проект".
+  Bootstraps project workflow: creates ./workflow/, records tech ctx in
+  ./workflow/PROJECT.md, seeds ./workflow/PLAN.md tails. Triggers:
+  инициализируй проект, подготовь проект к работе, создай workflow,
+  забутстрапь проект.
 ---
 
 # Initialize
 
 ## Purpose
 
-This skill bootstraps a project so the rest of the agent workflow has a place to
-write its canon. It owns three concerns: the `./workflow/` directory structure,
-the technical reference in `./workflow/PROJECT.md`, and a base
-`./workflow/PLAN.md` that routes the next project stages.
+Bootstrap project so agent workflow has canon home. Owns:
+`./workflow/` dirs, tech ref `./workflow/PROJECT.md`, base
+`./workflow/PLAN.md` routing next stages.
 
-It is the first stage of the project workflow. After it, `roadmap`,
-`architecture`, and `design-guideline` fill the created structure with content.
+First workflow stage. After it: `roadmap`, `architecture`,
+`design-guideline`.
 
-Bootstrap stays cheap and safe: it creates the place for canon but makes no
-product, architectural, or visual decisions. It does not write `VISION.md`,
-`ROADMAP.md`, or `ARCHITECTURE.md`, does not pick an architecture pattern, does
-not describe design, and does not create features. The service tails it writes
-into `PLAN.md` route those stages but do not make `initialize` their owner.
+Cheap + safe bootstrap: create canon place, make no product/architecture/design
+decisions. Do not write `VISION.md`, `ROADMAP.md`, `ARCHITECTURE.md`, pick
+architecture, describe design, or create features. `PLAN.md` tails route later
+stages; `initialize` does not own them.
 
 ## Strict Rules
 
-- **No git operations** in any form: no status checks, diffs, logs, branches,
-  commits, pushes, or `git init`. The working tree is expected to be dirty; the
-  user manages git.
-- **Stay inside the boundary.** Do not write `VISION.md`, `ROADMAP.md`,
-  `ARCHITECTURE.md`, or `DESIGN.md`; do not select an architecture pattern; do
-  not describe design; do not create `feature.md` or any feature folder content.
-  Route that work as tails in `PLAN.md` only.
-- **Do not touch the application.** Do not scaffold app code, generate
-  `.gitignore`, `.env.example`, or `README.md`, and do not edit `AGENTS.md`,
-  `CLAUDE.md`, `.claude/`, hooks, or symlinks.
-- **Safe, idempotent update.** When `./workflow/` already exists, never
-  overwrite user-written text. Fill only missing sections, keep existing
-  `PLAN.md` entries and tails, and add a tail only for an artifact that is
-  genuinely absent.
-- **Facts, not guesses.** Record in `PROJECT.md` only what is observable in
-  project files. Mark anything undetermined as `Требует уточнения` instead of
-  inventing it.
-- **Current state only.** `PROJECT.md` and `PLAN.md` describe the project as it
-  is now. No biography, no decision logs, no "previously X, now Y" comparisons.
-- Write this skill's instruction text in English; write the artifacts
-  (`PROJECT.md`, `PLAN.md`) in the user's working language. Keep tool names,
-  paths, framework names, commands, and code identifiers in their original
-  spelling.
-- Do not call downstream skills automatically. Stop once the structure,
-  `PROJECT.md`, and `PLAN.md` are ready.
+- No git ops: no status, diff, log, branch, commit, push, `git init`.
+  Dirty tree expected; user owns git.
+- Stay in boundary. Do not write `VISION.md`, `ROADMAP.md`,
+  `ARCHITECTURE.md`, `DESIGN.md`; do not select architecture, describe design,
+  create `feature.md`, or write feature folder content. Route as `PLAN.md`
+  tails only.
+- Do not touch app. Do not scaffold app code, generate `.gitignore`,
+  `.env.example`, `README.md`, edit `AGENTS.md`, `CLAUDE.md`, `.claude/`,
+  hooks, or symlinks.
+- Safe idempotence. If `./workflow/` exists, never overwrite user text. Fill
+  missing sections only, keep existing `PLAN.md` entries/tails, add tail only
+  for truly absent artifact.
+- Facts only. `PROJECT.md` records observable project-file facts. Unknown =
+  `Needs clarification`, not guess.
+- Current state only. `PROJECT.md` / `PLAN.md` contain no biography, decision
+  logs, or "previously/now" comparisons.
+- Do not auto-call downstream skills. Stop after structure, `PROJECT.md`,
+  `PLAN.md` ready.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write chat output and generated/rewritten project artifacts in target project
+working language. Detect from `./workflow/`, docs, user request. If unclear,
+use user language.
+
+When editing existing artifact, preserve language unless user asks translate.
+
+Apply artifact language to prose, headings, table headers, labels,
+placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
+packages, status markers, product terms as-is.
+
+Do not mix languages in one artifact unless project canon already does or quote
+/ source term requires it.
 
 ## Steps
 
-For this multi-step procedure, use the agent's task planning mode (todo list /
-task plan, whichever is available) and close items one by one.
+Use task planning mode for this multi-step flow. Close items one by one.
 
-### 1. Detect the current `./workflow/` state
+### 1. Detect `./workflow/` state
 
-Check whether `./workflow/` and its files already exist:
-`./workflow/PROJECT.md`, `./workflow/PLAN.md`, `./workflow/VISION.md`,
-`./workflow/ROADMAP.md`, `./workflow/ARCHITECTURE.md`, `./workflow/DESIGN.md`,
-and the `./workflow/archive/` and `./workflow/features/` directories.
+Check whether these exist:
 
-- If nothing exists, this is a fresh bootstrap: create everything.
-- If `./workflow/` exists, this is an idempotent update: read existing files,
-  preserve their content, and only complete what is missing.
+- `./workflow/`;
+- `./workflow/PROJECT.md`;
+- `./workflow/PLAN.md`;
+- `./workflow/VISION.md`;
+- `./workflow/ROADMAP.md`;
+- `./workflow/ARCHITECTURE.md`;
+- `./workflow/DESIGN.md`;
+- `./workflow/archive/`;
+- `./workflow/features/`.
 
-### 2. Collect technical context
+If none exist: fresh bootstrap. Create all required structure.
 
-Inspect the project root to determine the tech stack. Read sources in this
-priority order; later sources only fill gaps the earlier ones leave:
+If `./workflow/` exists: idempotent update. Read existing files, preserve
+content, complete only missing pieces.
 
-1. package manifests and lock files (e.g. `package.json`, `pyproject.toml`,
-   `go.mod`, `Cargo.toml`, `pom.xml`, and their lock files);
-2. language and build configs (compiler, bundler, framework configs);
-3. `Dockerfile`, Compose files, devcontainer, and CI files;
-4. test, lint, and format configs;
-5. environment templates (`.env.example` and similar);
-6. `README.md` and `docs/` as supporting context only, never as the source of
-   truth;
-7. the user, for facts that no file reveals.
+### 2. Collect tech ctx
 
-Record only observable facts. If a critical fact (stack, run command, key
-services) cannot be determined from files, prefer writing `Требует уточнения`
-in `PROJECT.md` and adding a clarification tail in `PLAN.md`. Ask the user at
-most a few short questions, and only for facts that genuinely block a usable
-technical reference — do not interrupt for minor gaps.
+Inspect project root for stack. Read sources in priority order; later sources
+fill only gaps:
 
-### 3. Create the `./workflow/` structure
+1. Package manifests + lock files: `package.json`, `pyproject.toml`, `go.mod`,
+   `Cargo.toml`, `pom.xml`, locks.
+2. Language/build config: compiler, bundler, framework config.
+3. `Dockerfile`, Compose, devcontainer, CI.
+4. Test/lint/format config.
+5. Env templates: `.env.example`, similar.
+6. `README.md` and `docs/` as support only, never source of truth.
+7. User, for facts no file reveals.
 
-Create any missing directories: `./workflow/`, `./workflow/archive/`, and
-`./workflow/features/`. Leave existing directories and their contents untouched.
+Record observable facts only. If critical fact (stack, run cmd, key services)
+is unknown, write `Needs clarification` in `PROJECT.md` and add clarification
+tail in `PLAN.md`. Ask user only for facts that block usable tech ref; keep
+questions few + short.
+
+### 3. Create dirs
+
+Create missing dirs:
+
+- `./workflow/`;
+- `./workflow/archive/`;
+- `./workflow/features/`.
+
+Leave existing dirs/content untouched.
 
 ### 4. Write `./workflow/PROJECT.md`
 
-Create `./workflow/PROJECT.md` from the section canon in *Artifact
-Requirements*, or update an existing one.
+Create `./workflow/PROJECT.md` from Artifact Requirements sections, or update
+existing file.
 
-When updating: keep all user-written text, fill only sections that are missing
-or empty, and do not rewrite sections that already hold valid content. Replace a
-section only when project files clearly contradict what it says.
+On update: keep user text, fill missing/empty sections only. Do not rewrite
+valid content. Replace section only when project files clearly contradict it.
 
-### 5. Create or update `./workflow/PLAN.md`
+### 5. Create/update `./workflow/PLAN.md`
 
-Create a base `./workflow/PLAN.md` if it is missing, or update the existing one,
-following *Updating PLAN.md* below. Add routing tails for the project stages
-whose artifacts do not yet exist.
+Create base `./workflow/PLAN.md` if missing, or update existing one per
+Updating PLAN.md. Add routing tails for project-stage artifacts that do not
+exist.
 
 ## Artifact Requirements
 
 ### `./workflow/PROJECT.md`
 
-`PROJECT.md` is the technical reference the next agents read instead of
-re-deriving the stack. Write it so a later agent can start without chat history:
-where the project is, how to run it, how to verify a change, which tools are
-already chosen, and which decisions are still open.
+Tech ref for later agents. They should not re-derive stack or need chat
+history. Include: project location, run, verify, chosen tools, open decisions.
 
-Use these sections; fill each only with observable facts. Leave a section short
-or mark it `Требует уточнения` when data is missing — do not pad it.
+Use semantic sections below. Fill with observable facts only. Translate visible
+headings, field labels, table headers, placeholders, examples before writing
+artifact. If data missing, keep short or localized `Needs clarification`; do not
+pad.
 
-- **Project** — name and type, when reliably identified.
-- **Stack** — languages, frameworks, and their versions.
-- **Package manager and commands** — the package manager and the main commands.
-- **Run locally** — how to start the project locally.
-- **Tests** — how to run tests.
-- **Build** — how to build the project.
-- **Lint / format / typecheck** — how to check changes.
-- **Environment and external services** — env variables and external services.
-- **Docker / CI / deploy** — only when such files are present.
-- **Open questions** — facts not determined from files; each becomes a
-  clarification tail in `PLAN.md`.
+- Project: name/type when reliable.
+- Stack: languages, frameworks, versions.
+- Package manager and commands: package mgr + main cmds.
+- Run locally: local start steps.
+- Tests: test cmd.
+- Build: build cmd.
+- Lint / format / typecheck: change checks.
+- Environment and external services: env vars + external services.
+- Docker / CI / deploy: only when files present.
+- Open questions: facts not determined from files; each becomes clarification
+  tail in `PLAN.md`.
 
-Keep it tight: every line is a fact a later agent can act on. No universal best
-practices, no narrative project history, no time estimates, no team or
-onboarding content.
+Keep tight. Each line = actionable fact. No best-practice filler, history, time
+estimates, team/onboarding prose.
 
 ### `./workflow/PLAN.md`
 
-`PLAN.md` is a light status index: a feature list plus service tails for the
-next project stages. On a fresh bootstrap there are no features yet, so create
-it with an empty feature list and the routing tails. Use this base shape when
-the file has no stronger local pattern:
+Light status index: feature list + service tails. Fresh bootstrap has no
+features; create empty feature list + routing tails. Use base shape when no
+stronger local pattern exists. Translate visible headings, field labels, table
+headers, placeholders, examples:
 
 ```md
 # PLAN
@@ -159,34 +174,30 @@ the file has no stronger local pattern:
 - [ ] architecture — ...
 ```
 
-Feature status markers used across the workflow: `[ ]` new, `[-]` planned,
-`[+]` split into tasks, `[x]` done, `[*]` tested, `[/]` archived. `initialize`
-does not add feature entries — it only writes the structure and the tails.
+Feature statuses: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]` done,
+`[*]` tested, `[/]` archived. `initialize` adds no feature entries; only
+structure + tails.
 
 ## Updating PLAN.md
 
-At the end, ensure `./workflow/PLAN.md` carries a service tail for each next
-project stage whose artifact is missing:
+At end, ensure `./workflow/PLAN.md` has service tail for each missing next-stage
+artifact:
 
-- a `roadmap` tail if `./workflow/VISION.md` or `./workflow/ROADMAP.md` is
-  absent;
-- an `architecture` tail if `./workflow/ARCHITECTURE.md` is absent;
-- a `design-guideline` tail if `./workflow/DESIGN.md` is absent;
-- a technical-clarification tail if `PROJECT.md` has entries under
-  **Open questions**.
+- `roadmap` tail if `./workflow/VISION.md` or `./workflow/ROADMAP.md` absent;
+- `architecture` tail if `./workflow/ARCHITECTURE.md` absent;
+- `design-guideline` tail if `./workflow/DESIGN.md` absent;
+- tech-clarification tail if `PROJECT.md` has Open questions.
 
-Preserve existing feature entries, statuses, and tails. Do not add a duplicate
-tail for an artifact that already exists or for a tail already present. Do not
-change any feature status — `initialize` is not a feature stage.
+Preserve feature entries, statuses, tails. No duplicate tail for existing
+artifact or existing tail. Do not change feature status; `initialize` is not a
+feature stage.
 
 ## Notes
 
-- Missing input files do not stop this skill. Proceed on whatever project files
-  are available and record the rest as open questions.
-- When `./workflow/` already exists, treat every file as input and merge
-  conservatively: complete the missing parts, never discard user content.
-- The project's own `README.md` is a supporting hint only; never treat it as the
-  authority on the stack.
-- The skill is ready when the project has a working `./workflow/` structure, a
-  fact-based technical reference in `PROJECT.md`, and a `PLAN.md` listing the
-  next open project stages.
+- Missing input files do not stop skill. Use available project files; record
+  rest as open questions.
+- Existing `./workflow/`: every file = input. Merge conservatively; complete
+  missing parts, never discard user content.
+- Project `README.md` = support hint only, never stack authority.
+- Ready state: `./workflow/` structure exists, `PROJECT.md` is fact-based tech
+  ref, `PLAN.md` lists next open project stages.

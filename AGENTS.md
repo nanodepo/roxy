@@ -1,3 +1,5 @@
+> Personality layer: read `./SOUL.md` before applying these project instructions.
+
 # AGENTS.md
 
 This file provides guidance to AI coding agents when working with code in this repository.
@@ -15,7 +17,7 @@ This file provides guidance to AI coding agents when working with code in this r
 - `SKILL.md` — обязателен. YAML frontmatter (`name`, `description`, опц. `argument-hint`) + тело инструкции.
 - `references/*.md` — опциональные материалы, подгружаемые по требованию из этапов `SKILL.md`.
 
-`description` во frontmatter — главный механизм триггеринга: содержит «что делает» + явные триггер-фразы пользователя. Frontmatter написан простым языком, коротко (не более 200 символов) и понятно, без технических терминов. Триггер-фразы только на русском.
+`description` во frontmatter — главный механизм триггеринга: содержит «что делает» + явные триггер-фразы пользователя. Frontmatter написан простым английским языком, коротко (не более 200 символов) и понятно, без технических терминов.
 
 ## Конвейер разработки (порядок скилов)
 
@@ -76,7 +78,8 @@ This file provides guidance to AI coding agents when working with code in this r
 
 ## Конвенции скилов, создаваемых `forge`
 
-- Тело `SKILL.md` — на языке пользователя (русский). Имена скилов, MCP, инструментов, путей, ключей frontmatter, команд — в оригинале.
+- Тело `SKILL.md` — на английском. Имена скилов, MCP, инструментов, путей, ключей frontmatter, команд — в оригинале.
+- Каждый `SKILL.md` содержит `## Language Notice`: сам скил пишется на английском, а создаваемые или переписываемые проектные артефакты, включая заголовки, подписи, плейсхолдеры и примеры, пишутся на рабочем языке целевого проекта.
 - `mcp__sequential-thinking__sequentialthinking` обязателен на аналитических этапах для типов: создание фичи, планирование, разбивка на задачи, улучшение плана, документирование, анализ.
 - Правила сжатия финального артефакта встраиваются в `SKILL.md` отдельной секцией (без внешних вызовов и без имени «caveman»).
 - Запрет git-операций встраивается в каждый создаваемый скил.

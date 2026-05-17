@@ -1,244 +1,187 @@
 ---
 name: improve
 description: >
-  Improves an existing feature plan after planning and optional design review.
-  Use for "improve plan", "review plan", "second pass", "strengthen plan",
-  or "find gaps in plan".
+  Improves existing feature plan after planning/design review. Triggers:
+  improve plan, review plan, second pass, strengthen plan, find gaps in plan.
 ---
 
 # Improve
 
 ## Purpose
 
-Make a second pass over an existing feature plan and improve only
+Improve one existing feature plan:
 `./workflow/features/{slug}/plan.md`.
 
-Use this skill after `planning` and, when applicable, after `design`. It checks
-the plan against the feature brief, project workflow files, and the actual
-codebase. It finds holes, wrong dependencies, weak wording, unsafe rewrites,
-unnecessary scope, and hidden prerequisites, then rewrites the plan so it is
-more executable and self-contained.
+Use after `planning`; after `design` when relevant. Check plan vs feature brief,
+workflow canon, actual codebase. Find gaps, wrong deps, weak wording, unsafe
+rewrites, extra scope, hidden prereqs. Rewrite plan into executable,
+self-contained, current-feature-bounded artifact.
 
-The skill owns plan quality only. It does not write tests, task files, product
-code, or documentation. Test and documentation ideas are recorded only as
-service tails in `./workflow/PLAN.md` when they affect later pipeline stages.
+Own plan quality only. May update matching entry in `./workflow/PLAN.md` only
+for service status or later-stage tails. Do not write tests, task files, code,
+docs, reports, or scorecards.
 
-## Parameters
+## Params
 
-Use `args` to name the feature:
+Use `args`:
 
 ```txt
 <feature-slug>
 ```
 
-- `feature-slug` is the directory name under `./workflow/features/`.
-- If `feature-slug` is absent, infer it from the user message and active
-  entries in `./workflow/PLAN.md` only when exactly one matching feature has
-  both `feature.md` and `plan.md`.
-- If the feature still cannot be identified, ask one short question for the
-  slug and stop until answered.
+- `feature-slug`: dir under `./workflow/features/`.
+- No `feature-slug`: infer from user msg + active `./workflow/PLAN.md` entries
+  only when exactly one match has both `feature.md` and `plan.md`.
+- Still unknown: ask one short slug question, stop.
 
 ## Strict Rules
 
-- Do not perform git operations in any form: no status checks, diffs, logs,
-  branches, commits, pushes, checkout commands, or worktree commands.
-- Own only `./workflow/features/{slug}/plan.md` and the matching service status
-  or service tails in `./workflow/PLAN.md`.
-- Do not write `tests.md`, `NN-task.md`, product code, user documentation, or
-  developer documentation.
-- Do not expand the feature beyond `feature.md`, `plan.md`, and current project
-  constraints. Remove speculative future work from the implementation plan.
+- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
+- Own only `./workflow/features/{slug}/plan.md` plus matching service status /
+  service tails in `./workflow/PLAN.md`.
+- Do not write `tests.md`, `NN-task.md`, code, user docs, or dev docs.
+- Do not expand beyond `feature.md`, `plan.md`, current project constraints.
+  Remove speculative future work.
 - Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
-  editing `plan.md`. Plan improvement is analytical work.
-- Keep test ideas out of `plan.md` unless they are necessary implementation
-  acceptance or verification constraints. Record discovered test risks as
-  service tails for `test` in `./workflow/PLAN.md`.
-- Preserve the current project language and local document style in generated
-  workflow artifacts. Keep paths, tool names, code identifiers, and status
-  markers in their original spelling.
-- Write current plan truth only. Do not leave biography, "previously / now"
-  comparisons, migration notes, stale decisions, or removed behavior in
-  `plan.md`.
+  editing `plan.md`. Plan improvement = analytical work.
+- Keep test ideas out of `plan.md` unless they are required impl acceptance /
+  verification constraints. Put discovered test risks as `test` service tails
+  in `./workflow/PLAN.md`.
+- Write current plan truth only. No biography, "previously/now" comparisons,
+  migration notes, stale decisions, or removed behavior in `plan.md`.
+
+## Language Notice
+
+Write this `SKILL.md` in English.
+
+Write chat output and generated/rewritten project artifacts in target project
+working language. Detect from `./workflow/`, docs, user request. If unclear,
+use user language.
+
+When editing existing artifact, preserve language unless user asks translate.
+
+Apply artifact language to prose, headings, table headers, labels,
+placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
+packages, status markers, product terms as-is.
+
+Do not mix languages in one artifact unless project canon already does or quote
+/ source term requires it.
 
 ## Steps
 
-For this multi-step procedure, use the agent's task planning mode (todo list /
-task plan, whichever is available) and close items one by one.
+Use task planning mode for this multi-step flow. Close items one by one.
 
-### 1. Identify the feature
+### 1. Identify feature
 
-Resolve `{slug}` from `args`, the user message, or `./workflow/PLAN.md`.
+Resolve `{slug}` from `args`, user msg, or `./workflow/PLAN.md`.
 
-Stop and ask for the slug if:
+Stop and ask slug if:
 
-- `./workflow/features/{slug}/` does not exist;
-- `./workflow/features/{slug}/feature.md` is missing;
-- `./workflow/features/{slug}/plan.md` is missing;
-- several active features could match the request.
+- `./workflow/features/{slug}/` missing;
+- `./workflow/features/{slug}/feature.md` missing;
+- `./workflow/features/{slug}/plan.md` missing;
+- several active features match.
 
-Do not create a missing feature or plan in this skill.
+Do not create missing feature or plan.
 
-### 2. Load the plan context
+### 2. Load plan ctx
 
-Read, in this order:
+Read in order:
 
 - `./workflow/features/{slug}/feature.md`;
 - `./workflow/features/{slug}/plan.md`;
-- `./workflow/features/{slug}/design.md`, if it exists;
-- `./workflow/PLAN.md`, if it exists;
+- `./workflow/features/{slug}/design.md`, if exists;
+- `./workflow/PLAN.md`, if exists;
 - `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md`,
-  `./workflow/DESIGN.md`, `./workflow/VISION.md`, and
-  `./workflow/ROADMAP.md` when they exist and affect this plan.
+  `./workflow/DESIGN.md`, `./workflow/VISION.md`, `./workflow/ROADMAP.md`
+  when present and relevant.
 
-Use the feature brief as the scope authority. Use `design.md` and workflow
-canon files as constraints, not as permission to add unrelated work.
+Use `feature.md` as scope authority. Use `design.md` + canon files as
+constraints, not permission for unrelated work.
 
-### 3. Re-check the codebase
+### 3. Re-check codebase
 
-Inspect the codebase narrowly but concretely. Start from files, modules,
-symbols, routes, commands, and dependencies named by `feature.md`, `plan.md`,
-and `design.md`. Use `rg`, `rg --files`, and direct reads to verify plan
-claims.
+Inspect narrowly, concretely. Start from files, modules, symbols, routes,
+commands, deps named by `feature.md`, `plan.md`, `design.md`. Use `rg`,
+`rg --files`, direct reads to verify claims.
 
 Check for:
 
-- paths, files, modules, symbols, routes, commands, or components that do not
-  exist;
-- parent paths that must exist before a file can be created;
-- reuse claims that are unsupported by local code;
-- functionality that already exists and should not be rebuilt;
-- public API, CLI, database, or UI contracts that the plan names too vaguely;
-- local patterns the plan should follow instead of inventing new structure.
+- phantom paths, files, modules, symbols, routes, commands, components;
+- parent paths needed before file creation;
+- reuse claims unsupported by local code;
+- existing functionality that should not be rebuilt;
+- vague public API, CLI, DB, UI contracts;
+- local patterns plan should follow instead of new structure.
 
-Keep the scan focused on evidence needed to improve `plan.md`.
+Keep scan limited to evidence needed for `plan.md`.
 
-### 4. Analyze the plan with `mcp__sequential-thinking__sequentialthinking`
+### 4. Analyze with `mcp__sequential-thinking__sequentialthinking`
 
-Call `mcp__sequential-thinking__sequentialthinking` and produce a prioritized
-defect list plus a rewrite strategy.
+Call `mcp__sequential-thinking__sequentialthinking`. Produce prioritized defect
+list + rewrite strategy.
 
-Analyze these dimensions:
+Analyze:
 
-- **Clarity** - steps name concrete files, modules, commands, tools, and
-  expected outcomes.
-- **Completeness** - the plan covers the feature scope, edge cases, and
-  required integration points without leaving gaps.
-- **Feasibility** - every step is achievable with available code, tools, and
-  context.
-- **Consistency** - ordering, dependencies, terminology, and constraints do
-  not contradict each other.
-- **Scope discipline** - every step is justified by the current feature, uses
-  the simplest workable approach, and avoids speculative abstraction.
+- Clarity: concrete files, modules, commands, tools, outcomes.
+- Completeness: scope, edge cases, integration points covered.
+- Feasibility: steps achievable with available code/tools/context.
+- Consistency: order, deps, terms, constraints align.
+- Scope discipline: each step justified by feature, simplest workable route,
+  no speculative abstraction.
 
-Use this defect taxonomy:
+Defect taxonomy:
 
-- phantom paths, files, modules, symbols, commands, or dependencies;
-- hidden prerequisites that must happen before a later step can work;
-- task boundaries that mix unrelated concerns or split dependent work badly;
-- unsafe rewrites of existing code without a containment or verification plan;
-- overconfident dependency graphs or parallelization assumptions;
-- vague implementation claims where a real contract or local pattern is needed;
-- design or architecture conflicts;
-- implementation plan content that belongs to `test`, `docs`, `task`, or the
-  user instead;
-- tests described as incidents or deletion checks rather than live invariants.
+- phantom paths/files/modules/symbols/commands/deps;
+- hidden prereqs;
+- task boundaries mixing unrelated concerns or splitting dependent work badly;
+- unsafe rewrites without containment/verification;
+- overconfident dep graph or parallelization;
+- vague impl claim needing real contract/local pattern;
+- design/architecture conflict;
+- content belonging to `test`, `docs`, `task`, or user;
+- tests framed as incidents/deletion checks instead of live invariants.
 
-Classify each finding as:
+Classify each finding:
 
-- **must fix in `plan.md`** - the current plan would mislead implementation;
-- **service tail for `PLAN.md`** - later `test`, `docs`, `design`, `planning`,
-  or user work is needed but should not be inserted into the implementation
-  plan;
-- **ignore** - unsupported, speculative, already covered, or outside this
-  skill's scope.
+- `must fix in plan.md`: current plan would mislead impl.
+- `service tail for PLAN.md`: later `test`, `docs`, `design`, `planning`, or
+  user work needed; keep out of impl plan.
+- `ignore`: unsupported, speculative, covered, or out of scope.
 
-If the plan is too weak to repair safely, still keep this skill's boundary:
-rewrite `plan.md` into a minimal honest plan that names the missing inputs and
-next required workflow stage instead of fabricating details.
+If plan too weak to repair safely, rewrite `plan.md` into minimal honest plan
+that names missing inputs + next required workflow stage. Do not fabricate.
 
 ### 5. Rewrite `plan.md`
 
 Edit only `./workflow/features/{slug}/plan.md`.
 
-Choose the smallest safe edit:
+Smallest safe edit:
 
-- Rewrite the whole file when the structure is misleading, stale, or too weak
-  to patch.
-- Make targeted edits when the current format is sound and only specific
-  sections need correction.
+- Whole rewrite when structure misleading, stale, or too weak to patch.
+- Targeted edits when format sound and only specific sections need correction.
 
-The improved plan must:
+Improved plan must:
 
-- stand on its own for `task` and `implement`;
-- name concrete files, modules, commands, and local patterns when known;
-- order work by real dependencies;
-- separate implementation work from tests, docs, and user decisions;
+- stand alone for `task` and `implement`;
+- name concrete files, modules, commands, local patterns when known;
+- order work by real deps;
+- separate impl from tests, docs, user decisions;
 - remove unsupported future-proofing and premature abstractions;
-- preserve useful constraints from `feature.md`, `design.md`, and workflow
-  canon files;
-- keep open questions only when they block safe implementation and cannot be
-  resolved from local context;
-- phrase verification needs as live behavior or product invariants, not as
-  memories of bugs or removed behavior.
+- preserve useful constraints from `feature.md`, `design.md`, canon files;
+- keep open questions only when they block safe impl and local ctx cannot
+  resolve them;
+- phrase verification as live behavior / product invariants, not bug memories
+  or removed behavior.
 
-Do not add a review report to `plan.md`. The artifact is the improved plan.
+Do not add review report. Artifact = improved plan.
 
 ### 6. Update `./workflow/PLAN.md`
 
-Touch `./workflow/PLAN.md` only when the improvement changes service status or
-reveals cross-stage tails.
+Touch `./workflow/PLAN.md` only when improvement changes matching feature
+service status or reveals cross-stage tails.
 
-Allowed updates:
-
-- keep the feature in planned status `[-]` when the plan is still the current
-  pipeline artifact;
-- add a concise tail for `test` when the improved plan reveals a test risk;
-- add a concise tail for `docs`, `design`, `planning`, or the user only when
-  that later-stage work is required and outside `plan.md`;
-- preserve unrelated feature entries and existing statuses.
-
-Use the existing local format when `./workflow/PLAN.md` has one. If no stronger
-format exists, append a tail under the feature entry:
-
-```md
-  - tail/test: <live invariant or risk to cover later>
-```
-
-Do not mark the feature as `[+]`, `[x]`, `[*]`, or `[/]` in this skill.
-
-### 7. Final verification
-
-Reread the updated `plan.md` and any changed `./workflow/PLAN.md` entry.
-
-Confirm:
-
-- every must-fix defect from Step 4 is addressed or explicitly converted into a
-  blocking open question;
-- no phantom path or unsupported dependency remains as an instruction;
-- no test, task, code, or documentation artifact was created;
-- test risks are service tails, not implementation-plan clutter;
-- the plan describes the current desired state without biography or delta
-  wording;
-- the next pipeline stage can act from the updated artifacts without knowing
-  this review session.
-
-## Artifact Requirements
-
-This skill produces:
-
-- **Improved `./workflow/features/{slug}/plan.md`** - a current, executable,
-  self-contained implementation plan.
-- **Optional update to `./workflow/PLAN.md`** - only service status or service
-  tails for later stages.
-
-This skill does not create `references/`, `tests.md`, `NN-task.md`, product
-code, documentation files, reports, or review scorecards.
-
-## Updating PLAN.md
-
-At the end, update `./workflow/PLAN.md` only for the matching feature.
-
-The status markers are:
+Status markers:
 
 - `[ ]` new;
 - `[-]` planned;
@@ -247,18 +190,56 @@ The status markers are:
 - `[*]` tested;
 - `[/]` archived.
 
-Normally leave the feature at `[-]`. Add service tails when needed so later
-pipeline stages inherit the current risk without mixing their work into
-`plan.md`.
+Normally leave feature `[-]`: this skill improves plan; it does not split,
+implement, test, or archive.
+
+Allowed:
+
+- keep feature `[-]` when plan remains current pipeline artifact;
+- add concise `test` tail for revealed test risk;
+- add concise `docs`, `design`, `planning`, or user tail only when required and
+  outside `plan.md`;
+- preserve unrelated entries/statuses.
+
+Use local format. If none, append under feature:
+
+```md
+  - tail/test: <live invariant or risk to cover later>
+```
+
+Do not mark feature `[+]`, `[x]`, `[*]`, or `[/]`.
+
+### 7. Final verification
+
+Reread updated `plan.md` and changed `./workflow/PLAN.md` entry.
+
+Confirm:
+
+- each must-fix defect addressed or converted to blocking open question;
+- no phantom path / unsupported dep remains as instruction;
+- no test, task, code, doc artifact created;
+- test risks are service tails, not impl-plan clutter;
+- plan states current desired state with no biography/delta wording;
+- next pipeline stage can act from artifacts without review-session context.
+
+## Artifact Requirements
+
+Produces:
+
+- Improved `./workflow/features/{slug}/plan.md`: current, executable,
+  self-contained impl plan.
+- Optional `./workflow/PLAN.md` update: only service status/tails.
+
+Does not create `references/`, `tests.md`, `NN-task.md`, code, docs, reports,
+or scorecards.
 
 ## Notes
 
-- A missing `design.md`, `PROJECT.md`, `ARCHITECTURE.md`, `DESIGN.md`,
-  `VISION.md`, or `ROADMAP.md` does not stop this skill. Proceed with the
-  available context and avoid inventing constraints.
-- If local code contradicts the plan, trust the verified codebase for what
-  exists and rewrite `plan.md` so future implementation is not misled.
-- If the user's request is to implement, test, document, or split tasks, report
-  the matching downstream skill instead of doing that work here.
-- Keep the output boring and operational: the next agent should see the
-  current plan, not a story about how the plan was improved.
+- Missing `design.md`, `PROJECT.md`, `ARCHITECTURE.md`, `DESIGN.md`,
+  `VISION.md`, or `ROADMAP.md` does not stop skill. Use available ctx; avoid
+  invented constraints.
+- If local code contradicts plan, trust verified codebase for existence and
+  rewrite `plan.md` so impl is not misled.
+- If user asks implement/test/docs/task split, report matching downstream skill
+  instead of doing it here.
+- Keep output boring, operational: current plan, not review narrative.

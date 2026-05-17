@@ -1,80 +1,123 @@
 ---
 name: audit
 description: >
-  Audits a project, codebase, documents, or workflow and returns prioritized read-only recommendations in chat. Use for "audit", "review project", "check workflow", "find risks".
+  Audits a project, codebase, documents, or workflow and returns prioritized read-only recommendations in chat. Use for "audit", "review project", "check workflow", or "find risks".
 ---
 
 # Audit
 
 ## Purpose
 
-Audit local project context and return a structured diagnostic report in chat. Read the codebase, `./workflow/`, project documentation, and any files the user explicitly names. Find contradictions, unclear ownership, risks, gaps, stale wording, and weak next actions.
+Audit local project ctx. Return prioritized diagnostic report in chat.
 
-Keep audit separate from execution. Do not change code, documentation, workflow artifacts, configuration, or generated files during the default chat-report workflow. The audit is complete when the user has a clear map of problems, evidence, impact, and next steps.
+Read only files needed for user scope: project instructions, `./workflow/`,
+docs, source, tests, explicit targets. Find contradictions, unclear ownership,
+risks, gaps, stale wording, weak next actions.
+
+Read-only by default. Write no files unless user explicitly asks for report file
+and gives path. Done = user has clear map of problem, evidence, impact, next
+step.
 
 ## Parameters
 
-Use `args` as the audit scope when present:
+Use `args` as audit scope:
 
 ```txt
 [audit target or question]
 ```
 
-If `args` is empty, infer the scope from the user's message and the current project. If the scope is broad, inspect the project surface first and narrow the report to the issues that most affect the user's goal. If the scope is ambiguous enough that evidence selection would be arbitrary, ask one concise clarification question before auditing.
+If `args` empty, infer from user msg + current project. Broad scope -> inspect
+surface first, report only issues with most effect on user goal. Scope arbitrary
+without clarification -> ask one concise question before audit.
 
 ## Strict Rules
 
-- Do not perform git operations in any form: no status checks, diffs, logs, branches, commits, pushes, or checkout commands.
-- Do not edit, create, move, delete, format, or regenerate files during the default audit. Return the audit in chat only unless the user explicitly asks for a standalone report file.
-- Do not run commands that are likely to mutate the worktree, dependency state, caches, generated output, or external services unless the user explicitly asks for that execution as part of the audit.
-- Use read-only local evidence. Prefer `rg`, `rg --files`, `find`, `sed`, `nl`, and direct file reads for context.
-- Call `mcp__sequential-thinking__sequentialthinking` after context gathering and before writing the final report. Use it to synthesize evidence, severity, uncertainty, systemic patterns, positive findings, and next actions.
-- Separate facts from inferences and recommendations. Mark uncertainty explicitly when evidence is incomplete.
-- Do not invent project patterns from a single hint. Treat repeated local evidence, canonical project files, and observable behavior as stronger than guesses.
-- Do not preserve biography or delta wording as a recommendation. Normalize advice around the current desired state.
-- When recommending tests, describe the live invariant the test should protect. Do not recommend tests that only memorialize an incident or deleted behavior.
+- No git ops: no status, diff, log, branch, commit, push, checkout.
+- No edit/create/move/delete/format/regenerate files. Chat report only, except
+  explicit report path request.
+- No mutating cmds: no deps install/update, cache writes, generated output,
+  external service changes, unless user explicitly asks.
+- Use read-only local evidence. Prefer `rg`, `rg --files`, `find`, `sed`, `nl`,
+  direct reads.
+- After ctx gathering, before report, call
+  `mcp__sequential-thinking__sequentialthinking` for synthesis: evidence,
+  severity, uncertainty, systemic patterns, positives, next actions.
+- Separate fact / inference / rec. Mark uncertainty when evidence incomplete.
+- Do not invent project pattern from one hint. Trust repeated evidence, canon
+  docs, observable behavior.
+- Current-state advice only. No biography/delta wording.
+- Test recs protect live invariant. No incident/deleted-behavior tests.
 
-## Steps
+## Language Notice
 
-1. Define the audit scope.
-   - Restate what the user asked to check.
-   - Identify explicit files, directories, workflow artifacts, or project areas named by the user.
-   - For broad audits, use task planning mode (todo list / task plan, whichever is available) to track context gathering, synthesis, and reporting.
+Write this `SKILL.md` in English.
 
-2. Gather local context.
-   - Read relevant project instructions first when present, such as `AGENTS.md`, `CLAUDE.md`, or local workflow guidance.
-   - Read relevant files under `./workflow/`, especially `./workflow/PLAN.md`, `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md`, `./workflow/DESIGN.md`, `./workflow/VISION.md`, `./workflow/ROADMAP.md`, and the target `./workflow/features/{slug}/` files when they relate to the request.
-   - Read project documentation and source files needed to verify the user's scope.
-   - Use search to locate duplicated concepts, stale references, unclear ownership boundaries, missing docs, overlapping responsibilities, and related tests.
-   - Keep a short context map for broad audits: main modules or documents, apparent sources of truth, important assumptions, dependencies between artifacts, and boundaries of trust.
+Write user-facing chat output and generated or rewritten artifacts in target
+project working language. Detect from `./workflow/`, docs, user msg. If unclear,
+use user language.
 
-3. Classify evidence.
-   - For each possible issue, record the local evidence: file path, line or section when available, command output when relevant, or observed project structure.
-   - Decide whether the evidence is a fact, an inference, a question, or out of scope.
-   - Drop findings that do not affect the user's decision, current workflow, correctness, maintainability, documentation quality, or delivery risk.
+When editing existing artifact, preserve its language unless user asks
+translation.
 
-4. Synthesize with `mcp__sequential-thinking__sequentialthinking`.
-   - Identify the main risks and contradictions.
-   - Assign severity by impact:
-     - `P0` blocks the task, release, data safety, security, or a required project invariant.
-     - `P1` creates substantial risk of incorrect behavior, architectural drift, workflow failure, or misleading user-facing results.
-     - `P2` weakens maintainability, clarity, testability, documentation quality, or repeatability.
-     - `P3` is polish, local ambiguity, or an improvement without urgent risk.
-   - Prefer systemic causes over long lists of small symptoms.
-   - Identify positive practices worth preserving.
-   - Decide the smallest useful next steps and which downstream skill or manual action fits each step.
+Apply artifact language to prose, headings, table headers, labels,
+placeholders, examples. Keep paths, cmds, tool names, code identifiers,
+framework/package names, status markers, established product terms unchanged.
 
-5. Write the chat report.
-   - Lead with the audit scope and key conclusion.
-   - List findings ordered by severity.
-   - For each finding, include fact/evidence, inference, impact, and recommendation.
-   - Include systemic patterns when they explain multiple findings.
-   - Include positive findings when they matter for future edits.
-   - End with prioritized next steps and a readiness check.
+Do not mix languages in one artifact unless canon already does so or source term
+requires it.
 
-## Report Requirements
+## Flow
 
-Use this report shape unless the user's request calls for a narrower answer:
+1. Scope.
+   - Restate req.
+   - Name explicit files/dirs/workflow artifacts/project areas.
+   - Broad audit -> use task plan items: ctx, synthesis, report.
+
+2. Gather ctx.
+   - Read project instructions first: `AGENTS.md`, `CLAUDE.md`, workflow
+     guidance.
+   - Read relevant `./workflow/`: `PLAN.md`, `PROJECT.md`, `ARCHITECTURE.md`,
+     `DESIGN.md`, `VISION.md`, `ROADMAP.md`, target `features/{slug}/`.
+   - Read docs/source/tests needed for scope.
+   - Search for duplicated concepts, stale refs, unclear ownership, missing
+     docs, overlapping responsibilities, related tests.
+   - Broad audit -> keep short ctx map: modules/docs, sources of truth,
+     assumptions, deps, trust boundaries.
+   - Stop when evidence sufficient.
+
+3. Classify.
+   - For each possible issue, record evidence: path, line/section, cmd output,
+     observed structure.
+   - Mark as fact, inference, question, or out of scope.
+   - Drop low-value issues: no effect on decision, workflow, correctness,
+     maintainability, docs quality, delivery risk.
+
+4. Synthesize via `mcp__sequential-thinking__sequentialthinking`.
+   - Main risks + contradictions.
+   - Severity:
+     - `P0`: blocks task/release/data safety/security/required invariant.
+     - `P1`: high risk of wrong behavior, architecture drift, workflow failure,
+       misleading user-facing result.
+     - `P2`: weak maintainability, clarity, testability, docs quality,
+       repeatability.
+     - `P3`: polish, local ambiguity, non-urgent improvement.
+   - Prefer systemic causes over symptom lists.
+   - Name positive practices worth preserving.
+   - Pick smallest useful next steps. Name downstream skill/manual action when
+     apt.
+
+5. Report.
+   - Lead with scope + key conclusion.
+   - Findings by severity.
+   - Each finding: fact/evidence, inference, impact, rec.
+   - Include systemic patterns when they explain findings.
+   - Include positives when useful.
+   - End with prioritized next steps + readiness check.
+
+## Report Shape
+
+Use unless user request needs narrower answer. Translate all visible headings,
+field labels, table headers, placeholders, examples into output language:
 
 ```md
 ## Audit Scope
@@ -85,7 +128,7 @@ Use this report shape unless the user's request calls for a narrower answer:
 
 ## Key Conclusion
 
-1-3 sentences naming the main risk or current project state.
+1-3 sentences naming main risk or current project state.
 
 ## Findings
 
@@ -114,18 +157,21 @@ Use this report shape unless the user's request calls for a narrower answer:
 3. Readiness check.
 ```
 
-Every significant finding must have a concrete impact. Avoid generic recommendations such as "improve documentation" unless you name the exact artifact, missing decision, and sufficient end state.
+Every significant finding needs concrete impact. Avoid generic recs like
+"improve documentation" unless exact artifact, missing decision, and sufficient
+end state are named.
 
-When the user asks to verify an existing claim or fix, use explicit statuses:
+For claim/fix verification, use statuses:
 
-- `verified` means local evidence supports the claim or fix.
-- `partial` means part of the claim or fix is supported, but important gaps remain.
-- `not addressed` means the relevant evidence is absent or contradicts the claim.
-- `cannot determine` means the available context is insufficient.
+- `verified`: local evidence supports claim/fix.
+- `partial`: part supported; important gaps remain.
+- `not addressed`: evidence absent or contradicts claim.
+- `cannot determine`: ctx insufficient.
 
 ## Notes
 
-- `audit` can run at any stage of the workflow. Its output can feed `feature`, `planning`, `improve`, `docs`, `markov`, or manual edits, but `audit` itself remains read-only.
-- If the user asks for a report file, explain that the default artifact is a chat report and ask for an explicit path before writing only that report.
-- If evidence conflicts, name the likely source of truth and explain why. Do not merge contradictory rules into a compromise.
-- If the audit finds no material issues, say so directly and mention any residual uncertainty or test gap.
+- `audit` works at any workflow stage. Output can feed `feature`, `planning`,
+  `improve`, `docs`, `markov`, or manual edits.
+- Report file request without path -> ask for path before writing.
+- Conflicting evidence -> name likely source of truth + why.
+- No material issues -> say so, name residual uncertainty/test gap.

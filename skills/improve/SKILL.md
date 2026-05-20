@@ -15,7 +15,12 @@ Improve one existing feature plan:
 Use after `planning`; after `design` when relevant. Check plan vs feature brief,
 workflow canon, actual codebase. Find gaps, wrong deps, weak wording, unsafe
 rewrites, extra scope, hidden prereqs. Rewrite plan into executable,
-self-contained, current-feature-bounded artifact.
+current-feature-bounded artifact.
+
+If `NN-task.md` files exist, treat `plan.md` as a compact shared context + task
+map. Improve only the map, shared constraints, ordering, and tails.
+Task-specific substance belongs in the matching `NN-task.md` files and is owned
+by `task`.
 
 Own plan quality only. May update matching entry in `./workflow/PLAN.md` only
 for service status or later-stage tails. Do not write tests, task files, code,
@@ -42,6 +47,11 @@ Use `args`:
 - Do not write `tests.md`, `NN-task.md`, code, user docs, or dev docs.
 - Do not expand beyond `feature.md`, `plan.md`, current project constraints.
   Remove speculative future work.
+- Do not duplicate `feature.md` in `plan.md`. Keep feature intent and product
+  boundaries in the brief; keep implementation structure and shared task context
+  in the plan.
+- If `NN-task.md` files exist, preserve task-map mode. Do not reconstruct a
+  detailed plan or edit task files.
 - Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
   editing `plan.md`. Plan improvement = analytical work.
 - Keep test ideas out of `plan.md` unless they are required impl acceptance /
@@ -51,8 +61,6 @@ Use `args`:
   migration notes, stale decisions, or removed behavior in `plan.md`.
 
 ## Language Notice
-
-Write this `SKILL.md` in English.
 
 Write chat output and generated/rewritten project artifacts in target project
 working language. Detect from `./workflow/`, docs, user request. If unclear,
@@ -90,6 +98,8 @@ Read in order:
 
 - `./workflow/features/{slug}/feature.md`;
 - `./workflow/features/{slug}/plan.md`;
+- `./workflow/features/{slug}/NN-task.md` paths, plus headers/status lines only
+  when needed to detect task-map mode and verify map links/statuses;
 - `./workflow/features/{slug}/design.md`, if exists;
 - `./workflow/PLAN.md`, if exists;
 - `./workflow/PROJECT.md`, `./workflow/ARCHITECTURE.md`,
@@ -129,6 +139,10 @@ Analyze:
 - Consistency: order, deps, terms, constraints align.
 - Scope discipline: each step justified by feature, simplest workable route,
   no speculative abstraction.
+- Artifact role: detailed planning mode when no task files exist; compact
+  task-map mode when task files exist.
+- Duplication: feature intent stays in `feature.md`; task-specific detail stays
+  in `NN-task.md`.
 
 Defect taxonomy:
 
@@ -140,6 +154,8 @@ Defect taxonomy:
 - vague impl claim needing real contract/local pattern;
 - design/architecture conflict;
 - content belonging to `test`, `docs`, `task`, or user;
+- content duplicated from `feature.md` without adding implementation value;
+- detailed task instructions left in task-map mode;
 - tests framed as incidents/deletion checks instead of live invariants.
 
 Classify each finding:
@@ -163,10 +179,13 @@ Smallest safe edit:
 
 Improved plan must:
 
-- stand alone for `task` and `implement`;
+- stand alone for `task` when no task files exist;
+- stand as compact shared context + task map when task files exist;
 - name concrete files, modules, commands, local patterns when known;
 - order work by real deps;
 - separate impl from tests, docs, user decisions;
+- avoid restating `feature.md` sections that remain available as feature intent;
+- avoid task-specific detail in task-map mode;
 - remove unsupported future-proofing and premature abstractions;
 - preserve useful constraints from `feature.md`, `design.md`, canon files;
 - keep open questions only when they block safe impl and local ctx cannot
@@ -218,6 +237,9 @@ Confirm:
 - each must-fix defect addressed or converted to blocking open question;
 - no phantom path / unsupported dep remains as instruction;
 - no test, task, code, doc artifact created;
+- `plan.md` role matches current artifacts: detailed planning surface or compact
+  task map;
+- no feature-brief duplicate or task-file duplicate remains as plan substance;
 - test risks are service tails, not impl-plan clutter;
 - plan states current desired state with no biography/delta wording;
 - next pipeline stage can act from artifacts without review-session context.
@@ -226,8 +248,8 @@ Confirm:
 
 Produces:
 
-- Improved `./workflow/features/{slug}/plan.md`: current, executable,
-  self-contained impl plan.
+- Improved `./workflow/features/{slug}/plan.md`: current detailed plan or
+  compact task map, matching whether `NN-task.md` files exist.
 - Optional `./workflow/PLAN.md` update: only service status/tails.
 
 Does not create `references/`, `tests.md`, `NN-task.md`, code, docs, reports,

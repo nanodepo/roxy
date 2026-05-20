@@ -3,9 +3,9 @@ name: design-guideline
 description: >
   Extracts and records the project's visual canon — brand, color, typography,
   layout, components, states, accessibility, and UI conventions — into
-  ./workflow/DESIGN.md. Use when the user says "зафиксируй дизайн",
-  "опиши дизайн проекта", "извлеки визуальный язык", "создай design guideline",
-  or asks where the project's design rules live.
+  ./workflow/DESIGN.md. Use when the user says "record the design guideline",
+  "describe the project design system", "extract the visual language", or asks
+  where the project's design rules live.
 ---
 
 # Design Guideline
@@ -36,8 +36,6 @@ generate token files/component lib, or run git ops.
   lib. Describe comps as project conventions, not impl.
 
 ## Language Notice
-
-Write this `SKILL.md` in English.
 
 Write user-facing chat output and generated/rewritten artifacts in target
 project working language. Detect from `./workflow/`, docs, user msg. If unclear,

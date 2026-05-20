@@ -3,8 +3,8 @@ name: architecture
 description: >
   Selects and records the project's architectural canon — the pattern, module
   boundaries, and code placement rules — in ./workflow/ARCHITECTURE.md. Use when
-  the user says "зафиксируй архитектуру", "выбери архитектурный паттерн",
-  "опиши архитектуру проекта", or asks where code should live.
+  the user says "record architecture", "choose an architecture pattern",
+  "describe the project architecture", or asks where code should live.
 ---
 
 # Architecture
@@ -26,9 +26,25 @@ Do not write product code, refactor, create feature plans, or write tests. Archi
 - **Stay in boundary.** Do not edit product code, refactor, write feature plans, or write tests. Put follow-up only as architectural tails in `./workflow/PLAN.md`.
 - Use one term per concept.
 
-## Language Notice
+## Architecture Canon Discipline
 
-Write this `SKILL.md` in English.
+Treat `./workflow/ARCHITECTURE.md` as the current placement and dependency
+contract for future feature work. It is not an ADR or decision diary.
+
+- Keep only rules that answer a future coding question: where code belongs,
+  which direction dependencies flow, what public surface exists, or how a
+  cross-cutting concern is handled.
+- State constraints as present-tense rules. Omit selection history, rejected
+  patterns, migration narrative, and obsolete alternatives.
+- Existing source code shows the de facto pattern. Existing architecture docs,
+  ADRs, changelogs, and comments are evidence only when current code or user
+  direction confirms them.
+- If historical reason protects an active non-obvious constraint, write the
+  constraint, not the story.
+- Resolve contradictions to one current rule. Do not blend multiple old rules
+  into a compromise.
+
+## Language Notice
 
 Write chat output and generated/rewritten project artifacts in target project working language. Detect from `./workflow/`, docs, and user request. If unclear, use user's current language.
 
@@ -50,6 +66,8 @@ Read existing inputs:
 - `./workflow/ARCHITECTURE.md` or other architecture doc.
 
 Scan source tree: top-level dirs, nesting, business-logic location, module refs.
+Use historical docs or ADR-style files as clues, not authority, unless their
+rule is active in current code or confirmed by the user.
 
 If input missing, continue. Note narrower basis in reasoning.
 
@@ -74,6 +92,8 @@ Call `mcp__sequential-thinking__sequentialthinking`. Work through:
 - Define code placement: where each code kind belongs.
 - Define cross-cutting concerns: auth, errors, logging, validation, config.
 - Define naming and structure conventions.
+- Omit rules that are only preference, biography, or obvious restatement of the
+  directory tree.
 
 Boundary test: related logic stays together; public surface stays small.
 
@@ -93,10 +113,14 @@ If new canon implies refactoring existing code, ask user before writing it as ca
 ### 4. Write `./workflow/ARCHITECTURE.md`
 
 Create/update `./workflow/ARCHITECTURE.md` using Artifact Requirements. Overwrite stale content; do not append revision history.
+Replace superseded rules in place. Do not document aspirational structure as
+current canon unless the user accepted it as the target architecture.
 
 ### 5. Record Architectural Tails
 
 If canon needs follow-up work, append architectural tails to `./workflow/PLAN.md`.
+Tail wording states the active missing boundary, violation, or normalization
+need. It does not recap how the architecture changed.
 
 Do not create feature plans, add feature entries, or change feature statuses. Architecture is not a feature.
 
@@ -117,3 +141,5 @@ Keep document tight:
 - Current state only, present tense.
 - No evolution biography, "previously / now", or decision lifecycle.
 - No operational chatter. Every line = rule feature agent can act on.
+- One canonical term and one canonical rule per concept; link or reference
+  rather than repeating variants.

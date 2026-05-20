@@ -18,8 +18,10 @@ Use after `feature`. Answers "how to build": read brief + project ctx, inspect
 codebase enough for realistic plan, build dep graph, split work into phases
 with concrete checkboxes, likely files, deps, risks, exit criteria.
 
-Plan feeds `design`, `improve`, `task`, `implement`, `test`, `docs`. It does
-not own test plan, UI design, task files, or code.
+Plan feeds `design`, `improve`, `task`, `implement`, `test`, `docs`. Before
+task files exist, `plan.md` is the detailed implementation planning surface.
+When `task` creates `NN-task.md` files, `plan.md` becomes a compact shared
+context + task map. It does not own test plan, UI design, task files, or code.
 
 ## Params
 
@@ -46,16 +48,18 @@ Use `args`:
 - Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
   final questions or writing plan. Planning = analytical work.
 - Ask only blocking questions. Blocking = no realistic plan without answer.
-  Record non-blocking gaps as `Open questions` in `plan.md`.
+  Do not leave blocking questions for later. Record only non-blocking gaps as
+  `Open questions` or `Tails` in `plan.md`.
 - Write current plan only. No chat biography, prior plan states, "now/previously"
   comparisons, migration notes, or removed behavior.
+- Do not duplicate `feature.md`. Use the feature brief as the source of feature
+  intent and boundaries; write only implementation decisions, constraints,
+  dependencies, and work structure that add planning value.
 - Keep test ideas out of `plan.md`. Checkpoints verify impl progress; they do
   not replace `tests.md`. Phrase verification as live behavior / product
   invariant, not incident or deletion check.
 
 ## Language Notice
-
-Write this `SKILL.md` in English.
 
 Write chat output and generated/rewritten project artifacts in target project
 working language. Detect from `./workflow/`, docs, user request. If unclear,
@@ -126,6 +130,7 @@ Call `mcp__sequential-thinking__sequentialthinking`. Reason through:
 - required behavior + technical approach fitting architecture/stack;
 - vague reqs -> verifiable success criteria;
 - `In` scope + explicit `Out` scope to stop creep;
+- which feature intent or boundary belongs only in `feature.md`;
 - dep graph: foundation, data/model, API/contracts, UI/interaction,
   integrations, rollout/runtime;
 - phase decomposition into working verifiable behavior; prefer vertical slices
@@ -161,7 +166,9 @@ instead of interrupting user.
 ### 6. Write `plan.md`
 
 Write `./workflow/features/{slug}/plan.md` per Artifact Requirements. Describe
-current plan state only, with no production history.
+current plan state only, with no production history. Reference `feature.md` for
+feature intent instead of copying its summary, problem, user, or non-goals
+verbatim.
 
 ### 7. Update `./workflow/PLAN.md`
 
@@ -178,6 +185,7 @@ Reread `plan.md` + changed `./workflow/PLAN.md` entry.
 Confirm:
 
 - plan can pass to `design`, `improve`, or `task` with no chat retelling;
+- plan adds implementation structure instead of restating `feature.md`;
 - no phantom path/module/dep remains as instruction;
 - `In` and `Out` explicit;
 - every phase has goal, ordered checkboxes, likely files, deps, exit criterion;
@@ -186,8 +194,8 @@ Confirm:
 
 ## Artifact Requirements
 
-Create `./workflow/features/{slug}/plan.md` as self-contained artifact following
-Language Notice.
+Create `./workflow/features/{slug}/plan.md` as a detailed planning artifact
+following Language Notice.
 
 Use semantic structure below, scaled to feature complexity. Translate visible
 heading, field label, table header, placeholder, example before writing
@@ -198,17 +206,17 @@ artifact. Omit optional sections that add no info for simple feature:
 
 ## Goal
 
-What behavior the feature must deliver and the chosen approach.
+Chosen implementation approach. Refer to `feature.md` for product intent.
 
 ## Scope
 
 ### In
 
-- What the implementation covers
+- Implementation work this plan covers
 
 ### Out
 
-- What the implementation does not cover
+- Implementation work this plan does not cover
 
 ## Context
 
@@ -216,6 +224,7 @@ What behavior the feature must deliver and the chosen approach.
 - Relevant modules
 - Local patterns to follow
 - Architecture, design, or stack constraints
+- Shared context needed by most phases
 
 ## Decisions
 
@@ -278,7 +287,8 @@ Exit criteria:
 
 Plan ready when:
 
-- another agent can act without chat history;
+- `task` can decompose it without chat history;
+- it complements `feature.md` and does not restate the brief;
 - `In` / `Out` stop scope spread;
 - each phase has goal, ordered actions, likely files, deps, exit criteria;
 - risks include practical mitigation, not generic warning;

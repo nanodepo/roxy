@@ -1,9 +1,9 @@
 ---
 name: forge
 description: >
-  Кузница кастомных скилов: собирает `skills/{name}/SKILL.md` по `README.md`
-  и проверенному `REFERENCES.md`. Триггеры: «собери скил», «сделай скил»,
-  «кузница скилов».
+  Custom skill forge: assembles `skills/{name}/SKILL.md` from `README.md` and a
+  verified `REFERENCES.md`. Triggers: forge a skill, build a skill, assemble a
+  skill.
 ---
 
 # Forge — сборка кастомного скила по локальной спецификации

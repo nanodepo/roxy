@@ -55,9 +55,26 @@ Resolve missing:
   succeeds and result recorded in `tests.md`.
 - If tests not run or verification fails, do not set `[*]`.
 
-## Language Notice
+## Invariant Discipline
 
-Write this `SKILL.md` in English.
+Treat tests as authoritative current operating context. A test earns its place
+by protecting a live behavior invariant that future changes might break.
+
+- Before writing or keeping a test, name the invariant, the risk, and the
+  observable proof. If that cannot be stated plainly, do not add the test.
+- Prefer tests for behavior that types cannot express: product rules,
+  boundaries, permissions, side effects, persistence, integration contracts,
+  accessibility affordances, and user-visible state transitions.
+- Do not test removed behavior, bug history, implementation churn, trivial
+  getters/setters, framework defaults, language mechanics, or duplicate
+  guarantees already covered at a cheaper level.
+- Rename or rewrite in-scope tests whose names/assertions describe incidents,
+  deleted UI, old implementation details, or one-off fixes. Preserve only the
+  current invariant they still protect.
+- Remove an in-scope test only when it protects no live invariant and its
+  guarantee is already held by code, types, framework, or a clearer test.
+
+## Language Notice
 
 Write chat output and generated/rewritten project artifacts in target project
 working language. Detect from `./workflow/`, docs, user request. If unclear,
@@ -101,6 +118,11 @@ Read project ctx:
 - `./workflow/ARCHITECTURE.md`: when module boundaries affect test placement.
 - `./workflow/DESIGN.md`: when UI behavior / visual interaction in scope.
 
+Use current artifacts as operating context. Historical notes, changelogs,
+closed incidents, old bug reports, and archived feature text are evidence only
+when they explain an active invariant, constraint, or risk in the current
+scope.
+
 ### 3. Discover test setup
 
 Find existing framework + cmds from `PROJECT.md`, package scripts, configs,
@@ -133,6 +155,8 @@ contradiction.
 Call `mcp__sequential-thinking__sequentialthinking`. Decide:
 
 - behavior invariants worth testing;
+- why each invariant is not already guaranteed by types, language, framework,
+  or an existing cheaper test;
 - risk each invariant protects;
 - cheapest sufficient level:
   - unit: pure logic, validation, transforms, branching;
@@ -144,7 +168,8 @@ Call `mcp__sequential-thinking__sequentialthinking`. Decide:
 - targeted verification cmds + readiness cmd;
 - residual gaps to show in `tests.md`.
 
-Fix result as short test plan before edits.
+Fix result as short test plan before edits. Keep only tests that pass the
+invariant admission check.
 
 ### 6. Write/update tests
 
@@ -153,6 +178,8 @@ Write tests in project style. One test focuses on one invariant.
 Quality rules:
 
 - Name tests by current behavior, not bug IDs, removed UI, impl details.
+- Rewrite in-scope test names/assertions that encode old incidents into current
+  behavior names/assertions.
 - Use arrange-act-assert unless local framework implies other convention.
 - Tests independent of execution order.
 - Setup/cleanup state inside test, fixture, or accepted helper.
@@ -161,6 +188,8 @@ Quality rules:
 - Avoid assertions proving language/framework/trivial getter only.
 - Do not assert internals when visible behavior/public contract proves
   invariant.
+- Delete or collapse redundant in-scope tests only when a clearer current
+  invariant test keeps the same guarantee.
 
 Dynamic web UI: start/reuse local server, wait for stable render, inspect DOM or
 screenshot before selectors, prefer role/label/visible text/test id, verify user
@@ -188,6 +217,7 @@ If verification fails:
 ### 8. Write `tests.md`
 
 Create/update `./workflow/features/{slug}/tests.md` as current feature test map.
+Replace stale entries with the current test surface; do not append a run diary.
 
 Use semantic structure. Translate visible headings, field labels, table headers,
 placeholders, examples:
@@ -216,11 +246,13 @@ Briefly name the feature behavior covered.
 ```
 
 Write present tense. No history, deltas, release notes, bug biography, temp
-logs. If no meaningful gaps: `- None known from the current scope.`
+logs. Verification shows the latest relevant result, not every attempt. Gaps
+list only active uncovered behavior or risk. If no meaningful gaps:
+`- None known from the current scope.`
 
 ### 9. Update PLAN.md
 
-If readiness cmd succeeded, update only this feature service status in
+If readiness cmd succeeded, update only this feature status in
 `./workflow/PLAN.md` to `[*]`.
 
 Do not change unrelated entries. Do not set `[*]` for partial, failed, skipped,
@@ -249,6 +281,10 @@ Produces:
 - Updated `./workflow/PLAN.md`: feature `[*]` only after fresh successful
   verification cmd.
 
+Artifacts must leave the next agent with current proof obligations: what is
+protected, how it is verified, and what live risk remains. Do not create
+historical test reports or preserve obsolete test names as memory.
+
 ## Notes
 
 - Coverage tools help find blind spots; percent is not goal. Goal = protect
@@ -257,3 +293,5 @@ Produces:
   feature behavior or risk profile calls for them.
 - Regression tests encode product invariant that should keep holding. Test name
   and `tests.md` describe normal behavior, not incident that motivated check.
+- If an old test exists only because something was removed, replace it with the
+  current invariant if one exists; otherwise leave no test for absence alone.

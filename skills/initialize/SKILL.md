@@ -3,8 +3,8 @@ name: initialize
 description: >
   Bootstraps project workflow: creates ./workflow/, records tech ctx in
   ./workflow/PROJECT.md, seeds ./workflow/PLAN.md tails. Triggers:
-  инициализируй проект, подготовь проект к работе, создай workflow,
-  забутстрапь проект.
+  initialize project, bootstrap project, set up workflow, prepare project
+  for work.
 ---
 
 # Initialize
@@ -44,9 +44,24 @@ stages; `initialize` does not own them.
 - Do not auto-call downstream skills. Stop after structure, `PROJECT.md`,
   `PLAN.md` ready.
 
-## Language Notice
+## Bootstrap Canon Discipline
 
-Write this `SKILL.md` in English.
+Create the smallest current workflow canon that lets later agents act without
+chat history.
+
+- `PROJECT.md` is the current technical reference: stack, commands, services,
+  and unresolved facts. Every line must be observable, actionable, or marked
+  `Needs clarification`.
+- `PLAN.md` is the current routing index: feature entries plus active project
+  tails. It is not a bootstrap log.
+- Keep historical material out of workflow canon. Old docs, changelogs, issue
+  notes, and comments are hints only when current project files support them.
+- Do not write a fact just because it is common for the stack. Record the file
+  evidence or leave a short open question.
+- A tail names an active missing artifact or fact. Do not add or refresh tails
+  for work that already has a current canonical file.
+
+## Language Notice
 
 Write chat output and generated/rewritten project artifacts in target project
 working language. Detect from `./workflow/`, docs, user request. If unclear,
@@ -103,6 +118,10 @@ is unknown, write `Needs clarification` in `PROJECT.md` and add clarification
 tail in `PLAN.md`. Ask user only for facts that block usable tech ref; keep
 questions few + short.
 
+When sources conflict, prefer current executable/config files over docs. Use
+`README.md` and `docs/` to discover possibilities, then verify them against
+files or mark them as open questions.
+
 ### 3. Create dirs
 
 Create missing dirs:
@@ -120,12 +139,14 @@ existing file.
 
 On update: keep user text, fill missing/empty sections only. Do not rewrite
 valid content. Replace section only when project files clearly contradict it.
+Remove bootstrap placeholders inside touched sections once current facts or
+`Needs clarification` entries replace them.
 
 ### 5. Create/update `./workflow/PLAN.md`
 
 Create base `./workflow/PLAN.md` if missing, or update existing one per
 Updating PLAN.md. Add routing tails for project-stage artifacts that do not
-exist.
+exist. Do not add session notes about initialization.
 
 ## Artifact Requirements
 
@@ -152,17 +173,26 @@ pad.
   tail in `PLAN.md`.
 
 Keep tight. Each line = actionable fact. No best-practice filler, history, time
-estimates, team/onboarding prose.
+estimates, team/onboarding prose, or generated-on-bootstrap notes.
 
 ### `./workflow/PLAN.md`
 
-Light status index: feature list + service tails. Fresh bootstrap has no
-features; create empty feature list + routing tails. Use base shape when no
-stronger local pattern exists. Translate visible headings, field labels, table
-headers, placeholders, examples:
+Light status index: status legend, feature list, service tails. Fresh bootstrap
+has no features; create the legend, an empty feature list, and routing tails.
+Use base shape when no stronger local pattern exists. Translate visible
+headings, field labels, table headers, placeholders, examples:
 
 ```md
 # PLAN
+
+## Statuses
+
+- `[ ]` new
+- `[-]` planned
+- `[+]` split into tasks
+- `[x]` implemented
+- `[*]` tested
+- `[/]` archived
 
 ## Features
 
@@ -174,9 +204,9 @@ headers, placeholders, examples:
 - [ ] architecture — ...
 ```
 
-Feature statuses: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]` done,
-`[*]` tested, `[/]` archived. `initialize` adds no feature entries; only
-structure + tails.
+Feature statuses: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
+implemented, `[*]` tested, `[/]` archived. `initialize` adds no feature entries;
+only structure + tails.
 
 ## Updating PLAN.md
 
@@ -188,9 +218,11 @@ artifact:
 - `design-guideline` tail if `./workflow/DESIGN.md` absent;
 - tech-clarification tail if `PROJECT.md` has Open questions.
 
-Preserve feature entries, statuses, tails. No duplicate tail for existing
-artifact or existing tail. Do not change feature status; `initialize` is not a
-feature stage.
+Ensure the `## Statuses` legend exists; add it if an existing `PLAN.md` lacks
+it. Preserve feature entries, statuses, tails. No duplicate tail for existing
+artifact or existing tail. When touching an initialize-owned tail, make its
+wording an active missing current artifact/fact, not a reminder of what was
+created. Do not change feature status; `initialize` is not a feature stage.
 
 ## Notes
 

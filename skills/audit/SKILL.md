@@ -50,8 +50,6 @@ without clarification -> ask one concise question before audit.
 
 ## Language Notice
 
-Write this `SKILL.md` in English.
-
 Write user-facing chat output and generated or rewritten artifacts in target
 project working language. Detect from `./workflow/`, docs, user msg. If unclear,
 use user language.

@@ -4,8 +4,8 @@ description: >
   Normalizes a single local document by the Markov laws of agentic development —
   rewrites the passed file in place so it describes a sufficient present, free of
   creation biography, delta wording, and operational clutter. Use when the user
-  says «нормализуй документ», «примени законы Маркова», «приведи файл к канону»,
-  «markov этот файл», or names a file to clean up by the Markov laws.
+  says "normalize document", "apply the Markov laws", "bring the file to canon",
+  "markov this file", or names a file to clean up by the Markov laws.
 ---
 
 # Markov — Normalize a Document by the Markov Laws
@@ -57,8 +57,6 @@ below as its working base; no other file is required.
 - Do not change the meaning of any law below when applying it.
 
 ## Language Notice
-
-Write this `SKILL.md` in English.
 
 Write user-facing chat output and generated or rewritten project artifacts in
 the working language of the target project. Detect it from existing

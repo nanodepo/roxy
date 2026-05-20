@@ -3,8 +3,8 @@ name: docs
 description: >
   Creates or updates the project's user and technical documentation — the root
   README.md and pages under ./docs/concept, ./docs/spec, ./docs/tech — recording
-  the current state of the product. Use when the user says "напиши документацию",
-  "обнови документацию", "задокументируй проект", "задокументируй фичу", or asks
+  the current state of the product. Use when the user says "write documentation",
+  "update documentation", "document the project", "document a feature", or asks
   to document implemented behavior.
 ---
 
@@ -17,6 +17,9 @@ behavior, build/run. Reader understands project without dev history.
 
 Runs late, usually after `test`. Reads canon + feature artifacts; owns only root
 `README.md` and `./docs/concept/`, `./docs/spec/`, `./docs/tech/`.
+
+In feature-update mode, marks the documented feature `[/]` archived in
+`./workflow/PLAN.md` once its behavior is captured.
 
 Does not write audit report, product code, tests, or feature `./workflow/`
 artifacts. No git ops. Mismatch recs belong to `audit`; `docs` fixes docs and
@@ -42,12 +45,27 @@ Optional `args`:
   history, `previously/now`, breaking-change markers. Replace superseded text.
 - Stay in boundary: no code, no tests, no audit report, no feature
   `feature.md`/`plan.md`/`design.md`/`tests.md` rewrites.
-- `./workflow/PLAN.md` write only appends docs tails.
+- `./workflow/PLAN.md` write only appends docs tails and, in feature-update
+  mode, sets the documented feature to `[/]` archived.
 - One term per concept across all docs.
 
-## Language Notice
+## Canonical Documentation Discipline
 
-Write this `SKILL.md` in English.
+Treat owned docs as current operating context for future agents and users. They
+are not an audit trail.
+
+- Every retained statement must be true now, useful to a future reader, and
+  placed in one canonical home.
+- Rewrite superseded text into the current rule or behavior. Delete it when the
+  code, UI, config, or a clearer doc already carries the same truth.
+- Do not preserve creation history, migration narrative, removed behavior,
+  abandoned decisions, or temporary notes in `README.md` or `./docs/`.
+- Keep historical reason only when it explains an active non-obvious constraint.
+  Write the constraint as present-tense guidance; omit the story.
+- When docs disagree, resolve to the current source of truth instead of blending
+  versions. Leave one current statement and link to it when other docs need it.
+
+## Language Notice
 
 Write user-facing chat output and generated/rewritten artifacts in target
 project working language. Detect from `./workflow/`, docs, user msg. If unclear,
@@ -94,13 +112,16 @@ Feature-update mode: also read `./workflow/features/{slug}/feature.md`
 Read implemented code in scope: modules, entry points, cmds, behavior. Read
 current docs: `README.md`, `./docs/concept/`, `./docs/spec/`, `./docs/tech/`.
 
-Code = source of truth. Feature artifacts = intent.
+Code, config, routes, schemas, and runnable commands = source of truth for what
+exists. Feature artifacts = intent, risk, and acceptance context. Existing docs
+are claims to verify, not truth by default.
 
 ### 4. Reconcile Docs
 
 For existing docs, check statements against live code: names, signatures,
 behavior, cmds, config. Mark confirmed vs mismatch. Preserve structure; plan
-in-place fixes. From-scratch with no docs -> skip.
+in-place fixes. Remove or replace stale owned-doc text instead of adding
+corrections beside it. From-scratch with no docs -> skip.
 
 ### 5. Analyze
 
@@ -115,6 +136,8 @@ Call `mcp__sequential-thinking__sequentialthinking`. Decide:
 - reader + task per doc before writing
 - root `README.md` coverage
 - Step 4 mismatches to fix
+- canonical home for each fact; other docs link or summarize only when useful
+- text to delete because it is duplicate, stale, biographical, or unsupported
 - unsupported gaps -> docs tails
 
 Fix result as structured docs plan.
@@ -128,6 +151,10 @@ From plan:
 - each page serves chosen reader/task
 - existing doc -> keep structure, fix mismatches in place
 - current state only; no history/deltas/temp notes
+- unsupported behavior stays out of docs; record a docs tail only when a real
+  documentation need remains
+- remove empty sections, stale TODOs, and placeholders that no longer help the
+  reader
 
 ### 7. Self-Check
 
@@ -138,16 +165,27 @@ Verify docs:
 - consistent terminology
 - no duplication: one fact in one doc; others link
 - self-contained present: no history/external explanation needed
+- retention: every kept paragraph answers a current reader need
+- authority: contradictions resolved to one current statement
 
-### 8. Append Docs Tails
+### 8. Update `./workflow/PLAN.md`
 
-Append to `./workflow/PLAN.md` only docs tails: needed docs unsupported by
-current material. No feature entries/status changes. If `PLAN.md` missing, list
-gaps in report.
+Append docs tails: needed docs unsupported by current material. Tail wording
+states the active missing documentation, not how the gap was discovered.
+
+In feature-update mode, set the documented feature to `[/]` once its behavior is
+documented. Change only that feature line; do not touch other entries or
+statuses. From-scratch mode changes no feature status.
+
+If `PLAN.md` missing, list gaps in report.
+
+Status markers: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
+implemented, `[*]` tested, `[/]` archived.
 
 ### 9. Report
 
-Short report: mode, docs created/updated, mismatches fixed, docs tails appended.
+Short report: mode, docs created/updated, mismatches fixed, docs tails appended,
+feature marked `[/]` if feature-update mode.
 
 ## Artifact Req
 
@@ -172,10 +210,16 @@ Format rules:
 
 - Current state, present tense.
 - No change history, release notes, versions, `previously/now`.
+- No "changed from", "new", "legacy", "old", or "after migration" phrasing
+  unless the word is part of a live product term or active compatibility
+  contract.
 - No ops chatter; every line helps reader.
+- One canonical home per fact; link instead of duplicating detail.
 - Diagram optional only when clarifies.
 
 ## Notes
 
 - Partial input ok. Missing `PROJECT.md`, `VISION.md`, or `ROADMAP.md` -> use
   available ctx + code.
+- If tests are documented, describe current guarantees and active gaps, not bug
+  incidents that caused the tests to exist.

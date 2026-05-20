@@ -41,8 +41,6 @@ Do not change any file except `./SOUL.md`.
 
 ## Language Notice
 
-Write this `SKILL.md` in English.
-
 Write user-facing chat output and generated or rewritten project artifacts in
 the working language of the target project. Detect it from existing
 `./workflow/` files, project documentation, and the user's request. If the

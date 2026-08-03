@@ -1,277 +1,154 @@
 ---
 name: design
 description: >
-  Creates feature-level UI/UX design docs in ./workflow/features/{slug}/design.md after planning. Use for "design feature", "create feature design", "write design.md", or "spec UI for feature".
+  Creates feature-level UI/UX design docs in ./workflow/features/{slug}/design.md
+  for features with new or non-trivial UX. Use for "design feature", "create
+  feature design", "write design.md", or "spec UI for feature".
 ---
 
-# Design
+# Design — Feature UI/UX Decisions
 
 ## Purpose
 
-Create/update feature UI/UX doc:
-`./workflow/features/{slug}/design.md`.
+This skill records the UI/UX decisions of one feature in
+`./workflow/features/{slug}/design.md`, so that `implement` can build the
+interface without a second design pass. It applies the project's visual canon
+(`./workflow/DESIGN.md`) and existing frontend patterns to a concrete feature;
+it does not invent a local design system and does not change the canon.
 
-Use `feature.md`, `plan.md`, `./workflow/DESIGN.md`, existing frontend
-patterns. Result must let `implement` build UI without another design pass.
-
-Applies project design canon to one feature. Does not change canon, code, tests,
-`plan.md`, or product discovery.
+The skill is selective: it runs only for features whose UX is genuinely new or
+non-trivial. The default result is a short `design.md` — a few sentences naming
+the components to use (including shadcn primitives where the project has them)
+and the page structure. That short form is a complete, finished artifact, not a
+draft. Expanded sections appear only when the feature introduces UX complex
+enough to need them, and only the sections that carry real decisions.
 
 ## Parameters
 
-Use `args`:
+`args` is the feature slug:
 
 ```txt
 <slug>
 ```
 
-- `<slug>` = folder under `./workflow/features/{slug}/`.
-- Empty or >1 token -> list folders under `./workflow/features/`, ask for one
-  slug.
-- Missing `feature.md` or `plan.md` -> stop, name missing upstream artifact.
-- Non-UI feature -> stop, explain `design` only runs for UI-affecting features.
+- `<slug>` names a folder under `./workflow/features/{slug}/`.
+- Empty or ambiguous `args` → list the folders under `./workflow/features/`
+  and ask the user to pick one.
+- `feature.md` missing → stop and name the missing upstream artifact.
+- The feature does not affect the UI → stop and explain that `design` runs
+  only for UI-affecting features.
 
 ## Strict Rules
 
-- No git ops: no status, diff, log, branch, commit, push, checkout.
-- Do not edit product code, tests, `./workflow/DESIGN.md`, `feature.md`,
-  `plan.md`.
-- Own only `./workflow/features/{slug}/design.md`, plus service tail in
-  `./workflow/PLAN.md` when missing/weak design canon blocks feature design.
-- Treat `./workflow/DESIGN.md` as visual/interaction canon. Do not invent local
-  design system.
-- Reuse existing frontend comps, layouts, tokens, interactions when fit.
-- During Step 4 before writing `design.md`, call
-  `mcp__sequential-thinking__sequentialthinking`.
-- Current UI decisions only. No biography, deltas, migration notes, removed
-  behavior.
-- Future test notes = current UI invariants to protect, not incidents/deletions.
-- Keep `design.md` compact + concrete: enough for impl, no marketing, no huge
-  matrices for simple features.
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Own only `./workflow/features/{slug}/design.md`, plus a service tail in
+  `./workflow/PLAN.md` when a missing or weak design canon blocks the feature
+  design. Do not edit product code, tests, `./workflow/DESIGN.md`,
+  `feature.md`, or `plan.md`.
+- Treat `./workflow/DESIGN.md` as the visual and interaction canon. Reuse
+  existing frontend components, layouts, and tokens when they fit.
+- Size the artifact to the feature: do not expand a simple feature into
+  scenario tables and component contracts. A section exists only if it carries
+  a decision.
+- Describe only current UI decisions, in the present tense — no biography,
+  deltas, or notes about removed behavior.
+- No code beyond component and identifier names that point at existing
+  reusable patterns.
 
 ## Language Notice
 
-Write user-facing chat output and generated/rewritten artifacts in target
-project working language. Detect from `./workflow/`, docs, user msg. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translation.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, cmds, tool names, code identifiers,
-framework/package names, status markers, established product terms unchanged.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
 
-Do not mix languages in one artifact unless canon already does so or source term
-requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
-## Flow
+## Steps
 
-Use task planning mode. Close items one by one.
+Use task planning mode (todo list) with one item per step.
 
-### 1. Resolve Feature
+1. **Resolve the feature.** Read `./workflow/features/{slug}/feature.md`, the
+   existing `design.md` if any, and `plan.md` if the feature has one (`design`
+   may run straight after `feature` when no plan is needed). Read
+   `./workflow/DESIGN.md` for the visual canon; if it is missing or too weak
+   to answer the feature's questions, note the gap and continue — do not
+   replace canon with taste.
 
-Parse `args`; identify `./workflow/features/{slug}/`.
+2. **Inspect frontend patterns.** Read only the frontend files needed to see
+   the project's conventions: related pages, shared layouts, the components
+   the feature will touch, and the component-library or theme configuration.
+   Record what can be reused. Do not run builds, codegen, or any mutating
+   commands.
 
-Read:
+3. **Decide the design.** Work out the user's goal, the primary scenario, the
+   page structure, and which existing components cover it. Judge honestly
+   whether the UX is genuinely new: most features compose known patterns, and
+   for them the short default form is the right answer. Identify only the
+   states and interactions that are non-obvious for this feature — do not
+   enumerate default/loading/empty/error mechanically when the project's
+   patterns already define them.
 
-- `./workflow/features/{slug}/feature.md`
-- `./workflow/features/{slug}/plan.md`
-- existing `./workflow/features/{slug}/design.md`, if any
-- `./workflow/DESIGN.md`, if any
-- `./workflow/PROJECT.md`, if stack needed
-- `./workflow/ARCHITECTURE.md`, if UI boundaries/code placement needed
-- `./workflow/PLAN.md`, if any
+4. **Ask the user only blockers.** Resolve questions from local documents and
+   code first. When `design.md` would otherwise require arbitrary invention,
+   ask the remaining questions in one batch, each with the recommended option
+   first, marked `(Recommended)` with a short reason. The written artifact
+   carries no open questions.
 
-If `./workflow/DESIGN.md` missing, continue only enough to identify gap. Do not
-replace canon with taste.
+5. **Write `design.md`.** Create or update
+   `./workflow/features/{slug}/design.md` per Artifact Requirements. When
+   updating, rewrite it as the current design of the feature — remove stale
+   decisions and anything that no longer holds.
 
-### 2. Inspect Frontend Patterns
+6. **Report and recommend.** Summarize the design decisions in chat. End with
+   a next-step recommendation: back to the main branch — `task` when the plan
+   is large and multi-phase, `improve` when the feature is complex or
+   architecturally important and the plan deserves a second pass, otherwise
+   `implement`.
 
-Read only frontend files needed for UI conventions:
+## Artifact Requirements
 
-- related routes/pages/views
-- shared layouts
-- related form/table/list/dialog/nav/feedback/empty-state comps
-- theme/token/styling/component-library config
+`./workflow/features/{slug}/design.md` is self-contained and follows the
+Language Notice.
 
-Prefer `rg --files`, `rg`, `find`, direct reads. Do not run build, format,
-codegen, package install, mutation cmds.
+The default form — sufficient for most features:
 
-Record patterns to reuse. If none exist, state that in `design.md`; use
-implementation-ready structure, not fake comp names.
+```md
+# Design: <feature name>
 
-### 3. Build Context Map
+A few sentences: what the user does on this screen, which existing components
+(including shadcn primitives) implement it, and the page structure — zones,
+primary action, where the feature plugs into existing layout. Name the one or
+two states or interactions that are non-obvious, if any.
+```
 
-Extract:
+Expand beyond this only when the feature introduces genuinely new, complex UX,
+and add only the sections that carry decisions: a scenario walkthrough when
+the flow is non-linear, a states breakdown when states behave unusually, a
+component contract when the feature introduces or changes a reusable
+component, content rules when copy is constrained. Never add a section to look
+complete.
 
-- user + goal
-- primary scenario
-- alt scenarios
-- deps/constraints from `feature.md` + `plan.md`
-- applicable `./workflow/DESIGN.md` rules
-- reusable frontend patterns
-- data sources + dynamic UI content
-- permissions/roles/platform/device differences
+## Updating PLAN.md
 
-Pick lowest sufficient fidelity:
-
-- `conceptual`: flow/framing/approach choice needed.
-- `low-fi`: screen structure, content priority, states needed.
-- `implementation-ready`: comps, layout, responsive behavior, states, content
-  rules, constraints needed.
-
-### 4. Synthesize
-
-Call `mcp__sequential-thinking__sequentialthinking`. Decide:
-
-- UI effect real?
-- user goal + first obvious interface priority
-- happy path + required alt scenarios
-- states: default/loading/empty/error/disabled/success/permission as relevant
-- layout by content priority: info, primary action, secondary actions, filters,
-  forms, results, errors, help
-- mobile/desktop behavior
-- comp contracts: anatomy, required/optional elems, variants, states, behavior,
-  reuse, accessibility
-- interaction/feedback: immediate response, progress, inline errors,
-  confirmations, interruptions, reduced motion
-- content rules: headings, text length, empty/error copy, overflow,
-  localization, data constraints
-- accessibility: keyboard, focus, labels, screen-reader dynamic feedback,
-  color-independent meaning, motion, touch targets
-- impl constraints: perf, reuse, data availability, what not to build
-- choices with 2-3 viable options needing user confirmation
-- whether missing/weak `./workflow/DESIGN.md` blocks feature design
-
-Prefer one recommended solution. Show alternatives only when they materially
-affect impl or UX.
-
-### 5. Ask Only Blockers
-
-Resolve questions from local docs/code first. Ask user only when `design.md`
-would otherwise require arbitrary invention. Group independent questions. For
-each, put recommended option first with `(Recommended)` + short reason.
-
-No mandatory questionnaire when ctx sufficient.
-
-### 6. Write `design.md`
-
-Create/update `./workflow/features/{slug}/design.md` using Artifact Req.
-
-When updating, rewrite as current feature design. Remove stale decisions,
-biography, deltas, ops notes.
-
-No code snippets except tiny identifier/component name needed to point to
-existing reusable pattern. Artifact describes UI behavior + constraints.
-
-### 7. Update `PLAN.md`
-
-If `./workflow/PLAN.md` exists, preserve feature status marker. Design stage has
-no separate marker.
-
-Add/update concise note under feature only when useful:
+If `./workflow/PLAN.md` exists, keep the feature's status marker unchanged —
+the design stage has no marker of its own. Optionally add one line under the
+feature:
 
 ```md
 - design: `./workflow/features/{slug}/design.md`
 ```
 
-If design canon missing/weak, append service tail naming missing canon + why it
-blocks/weakens design. Current-state, actionable, no discovery history.
-
-If `./workflow/PLAN.md` absent, do not create. Mention in final.
-
-## Artifact Req
-
-Create self-contained `./workflow/features/{slug}/design.md`. Follow Language
-Notice.
-
-Use semantic shape below. Translate all visible headings, labels, table headers,
-placeholders, examples:
-
-```md
-# Design: <feature name>
-
-## Context
-
-- User:
-- Goal:
-- Input documents:
-- Applicable rules from `./workflow/DESIGN.md`:
-- Reused frontend patterns:
-
-## Fidelity
-
-- Level:
-- Reason:
-
-## Scenarios
-
-### Primary Scenario
-
-1. User step.
-2. Interface response.
-3. Resulting state.
-
-### Alternative Scenarios
-
-- Scenario:
-- Behavior:
-
-## Layout
-
-- Content priority:
-- Main zones:
-- Primary action:
-- Secondary actions:
-- Mobile behavior:
-- Desktop behavior:
-
-## Components
-
-### <Component>
-
-- Purpose:
-- Anatomy:
-- Variants:
-- States:
-- Behavior:
-- Reuse:
-- Accessibility:
-
-## States
-
-| State | What is visible | User actions | Feedback |
-| --- | --- | --- | --- |
-| Default |  |  |  |
-| Loading |  |  |  |
-| Empty |  |  |  |
-| Error |  |  |  |
-| Success |  |  |  |
-
-## Content
-
-- Headings:
-- Empty copy:
-- Error copy:
-- Length and overflow:
-- Data source:
-
-## Implementation Constraints
-
-- Accessibility:
-- Motion:
-- Responsive:
-- Performance:
-- Do not build:
-
-## Open Questions
-
-- Question:
-- Impact:
-```
-
-Adapt to complexity:
-
-- Simple feature -> short. Merge sections only when no decision lost.
-- No full comp API unless feature introduces/changes reusable comp.
-- No pixel-perfect values when `./workflow/DESIGN.md` defines visual precision.
+If a missing or weak `./workflow/DESIGN.md` blocked or weakened the feature
+design, append a service tail naming the gap and why it matters — current
+state, actionable, no discovery history. If `PLAN.md` is absent, do not create
+it; mention this in the final report.

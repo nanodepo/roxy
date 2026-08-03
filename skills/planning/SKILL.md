@@ -1,327 +1,185 @@
 ---
 name: planning
 description: >
-  Turns feature brief into ./workflow/features/{slug}/plan.md and marks feature
-  planned in ./workflow/PLAN.md. Triggers: plan feature, create plan, write
-  plan.md, turn feature into a plan.
+  Turns a feature brief into ./workflow/features/{slug}/plan.md and marks the
+  feature planned in ./workflow/PLAN.md. Use for work too large to implement
+  in one pass. Triggers: plan feature, create plan, write plan.md, turn
+  feature into a plan.
 ---
 
-# Planning
+# Planning — Turn a Feature Brief into an Implementation Plan
 
 ## Purpose
 
-Turn `./workflow/features/{slug}/feature.md` into impl plan at
-`./workflow/features/{slug}/plan.md`; set feature status `[-]` in
-`./workflow/PLAN.md`.
+This skill turns `./workflow/features/{slug}/feature.md` into an
+implementation plan at `./workflow/features/{slug}/plan.md` and marks the
+feature `[-]` in `./workflow/PLAN.md`.
 
-Use after `feature`. Answers "how to build": read brief + project ctx, inspect
-codebase enough for realistic plan, build dep graph, split work into phases
-with concrete checkboxes, likely files, deps, risks, exit criteria.
+A plan exists for work an agent cannot reliably finish in one pass: it splits
+the process into phases that can each be executed and verified on their own.
+The plan directs a competent implementer rather than dictating keystrokes —
+checkboxes name outcomes, not micro-steps. A simple feature gets a flat list
+of steps instead of phases, and a feature simple enough to implement straight
+from the brief gets a recommendation to skip planning, not an inflated plan.
 
-Plan feeds `design`, `improve`, `task`, `implement`, `test`, `docs`. Before
-task files exist, `plan.md` is the detailed implementation planning surface.
-When `task` creates `NN-task.md` files, `plan.md` becomes a compact shared
-context + task map. It does not own test plan, UI design, task files, or code.
+The plan complements the brief, never restates it: `feature.md` owns the
+product intent and boundaries; `plan.md` adds the chosen approach, verified
+codebase context, non-trivial decisions, and the work structure. The plan
+does not own test plans, UI design, task files, or code — those belong to
+`test`, `design`, `task`, and `implement`.
 
-## Params
+## Parameters
 
-Use `args`:
+`args` names the feature:
 
 ```txt
-<feature-slug>
+<feature-slug>    # directory under ./workflow/features/
 ```
 
-- `feature-slug`: dir under `./workflow/features/`.
-- No `feature-slug`: infer from user msg + active `./workflow/PLAN.md` entries
-  only when exactly one feature has `feature.md` and matches request.
-- Still unknown: ask one short slug question, stop.
+- `args` is empty → infer the slug from the user's message and the active
+  entries in `./workflow/PLAN.md`, but only when exactly one feature with a
+  `feature.md` matches the request. Otherwise stop and ask one short
+  question.
+- `./workflow/features/{slug}/feature.md` is missing → stop and report it.
+  Do not create a brief; that is the `feature` skill's work.
 
 ## Strict Rules
 
-- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
-- Own only `./workflow/features/{slug}/plan.md` + matching service status in
-  `./workflow/PLAN.md`.
-- Do not write `tests.md`, `design.md`, `NN-task.md`, code, user docs, dev
-  docs, PRD, or SPEC.
-- Product code read-only. Inspect to plan; do not modify.
-- Do not auto-call downstream skills. Stop after `plan.md` + `PLAN.md` status.
-- Call `mcp__sequential-thinking__sequentialthinking` during Step 4 before
-  final questions or writing plan. Planning = analytical work.
-- Ask only blocking questions. Blocking = no realistic plan without answer.
-  Do not leave blocking questions for later. Record only non-blocking gaps as
-  `Open questions` or `Tails` in `plan.md`.
-- Write current plan only. No chat biography, prior plan states, "now/previously"
-  comparisons, migration notes, or removed behavior.
-- Do not duplicate `feature.md`. Use the feature brief as the source of feature
-  intent and boundaries; write only implementation decisions, constraints,
-  dependencies, and work structure that add planning value.
-- Keep test ideas out of `plan.md`. Checkpoints verify impl progress; they do
-  not replace `tests.md`. Phrase verification as live behavior / product
-  invariant, not incident or deletion check.
+- No git operations of any kind; the user owns git, a dirty working tree is
+  expected.
+- Own only `./workflow/features/{slug}/plan.md` and the matching status line
+  in `./workflow/PLAN.md`. Do not write `tests.md`, `design.md`,
+  `NN-task.md`, code, or documentation.
+- Read product code to plan; never modify it.
+- Name only verified paths, modules, and dependencies. Anything the plan
+  asserts about the codebase must have been checked, not assumed.
+- Ask all open questions in one batch before writing the plan, with the
+  recommended option first marked "(Recommended)". The written plan contains
+  no open question the user could have answered in that batch.
+- Write the plan in the present tense as the current intended state — no
+  chat biography, no "previously/now" wording, no record of rejected
+  alternatives.
+- Do not invoke downstream skills; finish with a recommendation.
 
 ## Language Notice
 
-Write chat output and generated/rewritten project artifacts in target project
-working language. Detect from `./workflow/`, docs, user request. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translate.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
-packages, status markers, product terms as-is.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names,
+code identifiers, framework names, package names, status markers, and
+established product terms in their original spelling.
 
-Do not mix languages in one artifact unless project canon already does or quote
-/ source term requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
 ## Steps
 
-Use task planning mode for this multi-step flow. Close items one by one.
+Use task planning mode (todo list) for this multi-step flow.
 
-### 1. Identify feature
+1. **Resolve the feature.** Turn `args`, the user's message, and
+   `./workflow/PLAN.md` into one `{slug}` as described in Parameters. If
+   `plan.md` already exists, treat the run as a rebuild from current inputs,
+   not an append to old text.
 
-Resolve `{slug}` from `args`, user msg, or `./workflow/PLAN.md`.
+2. **Read the brief and the project canon.** Read
+   `./workflow/features/{slug}/feature.md` (the scope authority),
+   `design.md` in the same directory if it exists, `./workflow/PROJECT.md`,
+   `./workflow/ARCHITECTURE.md`, `./workflow/DESIGN.md` when the feature
+   touches UI, and `./workflow/PLAN.md`. Canon files are constraints, not
+   permission for unrelated work.
 
-Stop and ask slug if:
+3. **Verify against the codebase.** Inspect as deeply as a realistic plan
+   needs: the modules and local patterns the work builds on, what already
+   exists versus what must be created, the contracts shared with the rest of
+   the system, and the architectural boundaries the plan must not cross.
 
-- `./workflow/features/{slug}/` missing;
-- `./workflow/features/{slug}/feature.md` missing;
-- several active features match.
+4. **Shape the plan.** Decide the approach and the decisions worth
+   recording, then structure the work. Use phases only when the work
+   genuinely does not fit one implementation pass; prefer vertical slices
+   that each end in verifiable working behavior. A simple feature gets a
+   flat step list. If the brief alone is enough to implement, do not write a
+   hollow plan — report that and recommend `implement` directly.
 
-Do not create missing feature brief.
+5. **Ask the user.** Gather every question that survived the brief, the
+   canon, and the codebase, and ask them in one batch per Strict Rules. Fold
+   the answers into the plan; non-blocking leftovers become tails.
 
-If `./workflow/features/{slug}/plan.md` exists, treat run as update: rebuild
-from current inputs, not append old text.
+6. **Write `plan.md`** per Artifact Requirements.
 
-### 2. Read feature + project ctx
+7. **Update `./workflow/PLAN.md`.** Set this feature's line to `[-]`,
+   pointing at `./workflow/features/{slug}/plan.md` unless the file uses a
+   stronger local format. Touch nothing else.
 
-Read in order:
-
-- `./workflow/features/{slug}/feature.md`: scope authority.
-- `./workflow/features/{slug}/design.md`, if exists: UI constraints.
-- `./workflow/PROJECT.md`: stack, run, deploy, project shape.
-- `./workflow/ARCHITECTURE.md`: architecture + code placement rules.
-- `./workflow/DESIGN.md`: only when feature touches UI / interaction.
-- `./workflow/PLAN.md`: feature list + workflow status.
-
-Use feature brief as scope authority. Use architecture, design, project files as
-constraints, not permission for unrelated work.
-
-### 3. Recon codebase
-
-Inspect as deeply as realistic plan needs, focused on plan evidence. Use `rg`,
-`rg --files`, direct reads.
-
-Find + verify:
-
-- similar modules, routes, components, services, schemas, migrations, configs,
-  conventions;
-- existing vs changed vs created pieces;
-- public API, CLI, DB, UI contracts shared across system;
-- architecture/stack boundaries plan must not cross;
-- deploy/runtime constraints.
-
-Record verified vs assumed so plan names no phantom paths/modules/deps.
-
-### 4. Analyze with `mcp__sequential-thinking__sequentialthinking`
-
-Call `mcp__sequential-thinking__sequentialthinking`. Reason through:
-
-- required behavior + technical approach fitting architecture/stack;
-- vague reqs -> verifiable success criteria;
-- `In` scope + explicit `Out` scope to stop creep;
-- which feature intent or boundary belongs only in `feature.md`;
-- dep graph: foundation, data/model, API/contracts, UI/interaction,
-  integrations, rollout/runtime;
-- phase decomposition into working verifiable behavior; prefer vertical slices
-  over isolated horizontal infra;
-- per phase: goal, ordered checkboxes, likely files, deps, risks + mitigations,
-  exit criteria;
-- strict sequence vs parallelizable work;
-- safe assumptions vs gaps blocking realistic plan.
-
-Filters:
-
-- Split broad phase/checkbox if it spans many files/subsystems or name contains
-  "and". Checkbox = concrete, ordered, verb-first. Avoid vague "handle backend"
-  / "do auth".
-- Keep each phase context-safe: limited scope, named deps, concrete files, clear
-  exit criterion.
-- If phase cannot be context-safe, say so in plan and propose smaller split.
-- If planning decision changes feature meaning, record in `plan.md` decisions
-  or raise as open question.
-
-### 5. Ask blocking questions only
-
-Close gaps from `feature.md`, workflow files, codebase before asking user.
-
-Ask at most three concise questions in one block, grouped by category: scope,
-user interaction, data, integrations, constraints. For each question, put
-recommended answer first with `(Recommended)` + short reason; offer only
-materially different options.
-
-If gap does not block realistic plan, write under `Open questions` in `plan.md`
-instead of interrupting user.
-
-### 6. Write `plan.md`
-
-Write `./workflow/features/{slug}/plan.md` per Artifact Requirements. Describe
-current plan state only, with no production history. Reference `feature.md` for
-feature intent instead of copying its summary, problem, user, or non-goals
-verbatim.
-
-### 7. Update `./workflow/PLAN.md`
-
-Set feature status `[-]`.
-
-Preserve structure, other feature entries, status markers. Change only this
-feature line. Use local format; if no stronger pattern, point entry at
-`./workflow/features/{slug}/plan.md`.
-
-### 8. Final verification
-
-Reread `plan.md` + changed `./workflow/PLAN.md` entry.
-
-Confirm:
-
-- plan can pass to `design`, `improve`, or `task` with no chat retelling;
-- plan adds implementation structure instead of restating `feature.md`;
-- no phantom path/module/dep remains as instruction;
-- `In` and `Out` explicit;
-- every phase has goal, ordered checkboxes, likely files, deps, exit criterion;
-- no `tests.md`, `design.md`, `NN-task.md`, code, or docs created;
-- plan states current desired state, no biography/delta wording.
+8. **Report and recommend.** Summarize the plan in a few chat lines, then
+   recommend the next step from the actual result: a compact plan →
+   `implement` directly; the feature touches UI with non-trivial UX →
+   `design` first; the feature is complex or architecturally significant →
+   `improve` as a verification pass, ideally by another model; a large
+   multi-phase plan → `task`.
 
 ## Artifact Requirements
 
-Create `./workflow/features/{slug}/plan.md` as a detailed planning artifact
-following Language Notice.
-
-Use semantic structure below, scaled to feature complexity. Translate visible
-heading, field label, table header, placeholder, example before writing
-artifact. Omit optional sections that add no info for simple feature:
+Write `./workflow/features/{slug}/plan.md` from this core, following the
+Language Notice. Add a section only when it carries a decision; omit any
+that would hold boilerplate:
 
 ```md
 # plan.md
 
 ## Goal
 
-Chosen implementation approach. Refer to `feature.md` for product intent.
-
-## Scope
-
-### In
-
-- Implementation work this plan covers
-
-### Out
-
-- Implementation work this plan does not cover
+The chosen implementation approach in a few sentences. Refer to feature.md
+for product intent instead of restating it.
 
 ## Context
 
-- Input documents
-- Relevant modules
-- Local patterns to follow
-- Architecture, design, or stack constraints
-- Shared context needed by most phases
+Verified files, modules, and local patterns the work builds on; the
+constraints from architecture and stack that bound the approach.
 
 ## Decisions
 
-- Technical decisions and their reasons
-- Contracts shared between parts of the system
-- Assumptions safe enough to proceed on
-
-## Dependency graph
-
-- Foundation
-- Data/model
-- API/contracts
-- UI/interaction
-- Integrations
-- Rollout/runtime constraints
+Non-trivial technical decisions and the reasons that constrain
+implementation, including shared contracts between parts of the work.
 
 ## Phases
 
 ### Phase 1: <name>
 
-Goal: ...
-
-- [ ] Concrete, ordered, verb-first action
-- [ ] Concrete, ordered, verb-first action
-
-Likely files:
-
-- `path/to/file`
-
-Dependencies:
-
-- None / Phase N / external answer
-
-Risks:
-
-- Risk -> practical mitigation
-
-Exit criteria:
-
-- What must be true after the phase
-
-### Phase 2: <name>
-
-...
-
-## Checkpoints
-
-- [ ] After foundation: ...
-- [ ] After core flow: ...
-- [ ] Before handing off to `task`: ...
-
-## Open questions
-
-- Only questions that affect implementation
+- [ ] Outcome the implementer can check
+- [ ] Outcome the implementer can check
 
 ## Tails
 
-- What to pass on to `design`, `task`, `test`, `docs`, or user
+Discovered work that is out of scope; hand-offs for design, task, test,
+docs, or the user.
 ```
 
-Plan ready when:
-
-- `task` can decompose it without chat history;
-- it complements `feature.md` and does not restate the brief;
-- `In` / `Out` stop scope spread;
-- each phase has goal, ordered actions, likely files, deps, exit criteria;
-- risks include practical mitigation, not generic warning;
-- oversized phases cut to manageable size;
-- checkpoints verify impl progress, not replace test plan;
-- open questions are short and affect impl;
-- plan contains no test canon, UI design, code, or docs.
-
-If feature too thin to plan safely, keep boundary: write minimal honest
-`plan.md` naming missing inputs + next required workflow stage. Do not
-fabricate phases.
+- For a feature without real phases, replace `## Phases` with a flat
+  `## Steps` checkbox list.
+- Plan size is proportional to feature complexity: a few sentences of goal
+  plus a short step list is a complete plan for a simple feature.
+- The plan stands alone: the next stage works from `feature.md` plus
+  `plan.md` with no chat retelling.
 
 ## Updating PLAN.md
 
-At end, set matching feature in `./workflow/PLAN.md` to `[-]`.
-
-Status markers:
-
-- `[ ]` new;
-- `[-]` planned;
-- `[+]` split into tasks;
-- `[x]` implemented;
-- `[*]` tested;
-- `[/]` archived.
-
-Change only this feature line. Do not touch other statuses/entries.
+Set the matching feature to `[-]` planned. Status markers: `[ ]` new, `[-]`
+planned, `[+]` split into tasks, `[x]` implemented, `[*]` tested, `[/]`
+archived. Change only this feature's line; preserve every other entry and
+status.
 
 ## Notes
 
-- Missing `PROJECT.md`, `ARCHITECTURE.md`, or `DESIGN.md` does not stop skill.
-  Use available ctx; avoid invented constraints.
-- If codebase contradicts `feature.md`, trust verified codebase for existence,
-  plan around it, record conflict as open question or tail.
-- If user asks design/improve/task split/implement/test/docs, report matching
-  downstream skill instead of doing that work here.
-- Keep output operational: current plan, not story of creation.
+- A missing `PROJECT.md`, `ARCHITECTURE.md`, or `DESIGN.md` does not stop
+  the skill; plan from what exists and do not invent constraints.
+- When the codebase contradicts `feature.md`, trust the verified codebase
+  for what exists, plan around it, and record the conflict as a tail.
+- `improve` may later verify this plan and will preserve the structure
+  written here — keep that structure honest rather than ornate.

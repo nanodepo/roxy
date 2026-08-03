@@ -1,175 +1,150 @@
 ---
 name: audit
 description: >
-  Audits a project, codebase, documents, or workflow and returns prioritized read-only recommendations in chat. Use for "audit", "review project", "check workflow", or "find risks".
+  Audits a project, module, mechanic, algorithm, architecture decision, or
+  page — read-only — and returns a compact, evidence-bound diagnosis in chat.
+  Each finding survives a false-positive gate or is dropped. Use for "audit",
+  "review project", "investigate this bug", "how does X work and how to improve
+  it", "check architecture", "find risks".
 ---
 
-# Audit
+# Audit — Skeptical, Evidence-Bound Diagnosis
 
 ## Purpose
 
-Audit local project ctx. Return prioritized diagnostic report in chat.
+Audit a scope and return a short diagnosis that a reader can scan in under a
+minute. The product is a small set of findings that are real, each tied to
+code, each with a concrete consequence. Read-only: write no files unless the
+user names a report path.
 
-Read only files needed for user scope: project instructions, `./workflow/`,
-docs, source, tests, explicit targets. Find contradictions, unclear ownership,
-risks, gaps, stale wording, weak next actions.
+The bar is not "list everything that could be improved." The bar is "name what
+actually matters, prove it, and stop." A clean scope is a valid result — say so
+in one line rather than manufacturing findings to look thorough.
 
-Read-only by default. Write no files unless user explicitly asks for report file
-and gives path. Done = user has clear map of problem, evidence, impact, next
-step.
+## Scope and Intent
 
-## Parameters
+Detect the **scope** and adapt the lens:
 
-Use `args` as audit scope:
+- **Whole project** — survey the surface first; report only what most affects
+  the user's goal. Prefer systemic causes over symptom lists.
+- **Module / subsystem** — boundaries, responsibilities, coupling, leaky
+  abstractions, dead seams.
+- **Mechanic / algorithm** — trace the real control and data flow end to end;
+  check correctness, edge cases, complexity, invariants.
+- **Architecture decision** — fit to actual constraints, trade-offs paid vs.
+  claimed, cheaper alternatives, drift from stated canon.
+- **Page / UI flow** — states (loading, empty, error), data contract, a11y,
+  interaction edges; not pixel taste unless asked.
 
-```txt
-[audit target or question]
+Detect the **intent**:
+
+- **Bug investigation** — find the defect: reproduce the path in code, locate
+  the root cause, name the trigger and the fix. One proven root cause beats
+  five suspects.
+- **Understand + improve** — describe how it works *now* tersely, then give
+  targeted recommendations with the consequence of each.
+
+When scope or intent stays arbitrary after reading the request and the project
+surface, ask one concise question before auditing. Otherwise infer and proceed.
+
+## The False-Positive Gate (core)
+
+Every candidate finding must pass this gate. If it fails, **drop it** — do not
+downgrade it to filler.
+
+1. **Restate it in one precise sentence.** If it stops making sense when stated
+   plainly, it was pattern-matching. Drop it. (Half of bad findings die here.)
+2. **Evidence exists.** Point to `path:line` (or a named section). No concrete
+   location → not a finding.
+3. **It is real in *this* code**, not assumed. Did you verify the validation /
+   call site / type actually behaves as you claim, or did you invent it? Check
+   the source before asserting.
+4. **Name a concrete scenario where it bites.** Specific input, state, or
+   change that produces wrong behavior, data risk, or real maintenance cost.
+   No nameable consequence → drop it.
+5. **Not style dressed as risk.** Defense-in-depth, preference, or a "smell"
+   with no consequence here is not a finding. Say it in one line under a
+   "minor / preserve" note at most, or omit.
+6. **LLM-bias check.** Am I manufacturing this to appear rigorous? Models
+   over-detect problems. If in doubt, cut.
+
+Severity reflects real blast radius, not how easy the issue was to spot or how
+clever it sounds.
+
+## Strict Rules (read-only)
+
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Do not edit, create, move, delete, format, or regenerate files. The chat
+  report is the only output, except an explicitly requested report file (ask
+  for the path if not given).
+- No mutating commands: no installs, updates, cache writes, generated output,
+  or external service changes.
+- Use read-only local evidence: `rg`, `rg --files`, `find`, direct reads.
+  Read → verify each claim against source → drop the unverified → report.
+- Separate fact, inference, and recommendation; mark uncertainty explicitly.
+- Current-state advice only: no biography, no "was changed from" wording. Test
+  recommendations protect live invariants, not past incidents.
+
+## Severity
+
+- **P0** — blocks work, loses data, opens a security hole, or is wrong in
+  normal use.
+- **P1** — likely wrong in a real scenario, genuine architecture risk, or a
+  misleading result.
+- **P2** — real correctness-edge, maintainability, or clarity cost with a named
+  scenario.
+- **P3** — minor; include only when noting it is cheap and genuinely useful.
+
+If a candidate cannot reach P2 with a concrete scenario, it is not a finding.
+
+## Output Format
+
+Lead with **one or two sentences**: the scope and the headline verdict (main
+risk, or "no material issues"). Then findings, highest severity first.
+
+Each finding is **at most three lines**, in this shape:
+
+```
+**P1 — short title (≤ 8 words)**
+`path/file.ext:42` · the fact, one sentence. [inference: ... if not certain]
+→ Impact: concrete consequence. Fix: smallest concrete action.
 ```
 
-If `args` empty, infer from user msg + current project. Broad scope -> inspect
-surface first, report only issues with most effect on user goal. Scope arbitrary
-without clarification -> ask one concise question before audit.
+For several small same-area findings, use a compact table instead:
 
-## Strict Rules
-
-- No git ops: no status, diff, log, branch, commit, push, checkout.
-- No edit/create/move/delete/format/regenerate files. Chat report only, except
-  explicit report path request.
-- No mutating cmds: no deps install/update, cache writes, generated output,
-  external service changes, unless user explicitly asks.
-- Use read-only local evidence. Prefer `rg`, `rg --files`, `find`, `sed`, `nl`,
-  direct reads.
-- After ctx gathering, before report, call
-  `mcp__sequential-thinking__sequentialthinking` for synthesis: evidence,
-  severity, uncertainty, systemic patterns, positives, next actions.
-- Separate fact / inference / rec. Mark uncertainty when evidence incomplete.
-- Do not invent project pattern from one hint. Trust repeated evidence, canon
-  docs, observable behavior.
-- Current-state advice only. No biography/delta wording.
-- Test recs protect live invariant. No incident/deleted-behavior tests.
-
-## Language Notice
-
-Write user-facing chat output and generated or rewritten artifacts in target
-project working language. Detect from `./workflow/`, docs, user msg. If unclear,
-use user language.
-
-When editing existing artifact, preserve its language unless user asks
-translation.
-
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, cmds, tool names, code identifiers,
-framework/package names, status markers, established product terms unchanged.
-
-Do not mix languages in one artifact unless canon already does so or source term
-requires it.
-
-## Flow
-
-1. Scope.
-   - Restate req.
-   - Name explicit files/dirs/workflow artifacts/project areas.
-   - Broad audit -> use task plan items: ctx, synthesis, report.
-
-2. Gather ctx.
-   - Read project instructions first: `AGENTS.md`, `CLAUDE.md`, workflow
-     guidance.
-   - Read relevant `./workflow/`: `PLAN.md`, `PROJECT.md`, `ARCHITECTURE.md`,
-     `DESIGN.md`, `VISION.md`, `ROADMAP.md`, target `features/{slug}/`.
-   - Read docs/source/tests needed for scope.
-   - Search for duplicated concepts, stale refs, unclear ownership, missing
-     docs, overlapping responsibilities, related tests.
-   - Broad audit -> keep short ctx map: modules/docs, sources of truth,
-     assumptions, deps, trust boundaries.
-   - Stop when evidence sufficient.
-
-3. Classify.
-   - For each possible issue, record evidence: path, line/section, cmd output,
-     observed structure.
-   - Mark as fact, inference, question, or out of scope.
-   - Drop low-value issues: no effect on decision, workflow, correctness,
-     maintainability, docs quality, delivery risk.
-
-4. Synthesize via `mcp__sequential-thinking__sequentialthinking`.
-   - Main risks + contradictions.
-   - Severity:
-     - `P0`: blocks task/release/data safety/security/required invariant.
-     - `P1`: high risk of wrong behavior, architecture drift, workflow failure,
-       misleading user-facing result.
-     - `P2`: weak maintainability, clarity, testability, docs quality,
-       repeatability.
-     - `P3`: polish, local ambiguity, non-urgent improvement.
-   - Prefer systemic causes over symptom lists.
-   - Name positive practices worth preserving.
-   - Pick smallest useful next steps. Name downstream skill/manual action when
-     apt.
-
-5. Report.
-   - Lead with scope + key conclusion.
-   - Findings by severity.
-   - Each finding: fact/evidence, inference, impact, rec.
-   - Include systemic patterns when they explain findings.
-   - Include positives when useful.
-   - End with prioritized next steps + readiness check.
-
-## Report Shape
-
-Use unless user request needs narrower answer. Translate all visible headings,
-field labels, table headers, placeholders, examples into output language:
-
-```md
-## Audit Scope
-
-- Request:
-- Context read:
-- Out of scope:
-
-## Key Conclusion
-
-1-3 sentences naming main risk or current project state.
-
-## Findings
-
-### P1: Short Problem Name
-
-- Fact:
-- Inference:
-- Impact:
-- Recommendation:
-
-## Systemic Patterns
-
-- Pattern:
-- Where it appears:
-- What to normalize:
-
-## What To Preserve
-
-- Practice:
-- Why it helps:
-
-## Next Steps
-
-1. Highest-value action.
-2. Follow-up action.
-3. Readiness check.
+```
+| Sev | Finding | Where | Fix |
+|-----|---------|-------|-----|
+| P2  | ... | `file:line` | ... |
 ```
 
-Every significant finding needs concrete impact. Avoid generic recs like
-"improve documentation" unless exact artifact, missing decision, and sufficient
-end state are named.
+Close with:
 
-For claim/fix verification, use statuses:
+- **Root cause** — one short block *only if* one cause explains several
+  findings. Skip it otherwise.
+- **Next steps** — 1–5 items, smallest useful first, each naming a concrete
+  action and (if apt) a downstream skill (`feature`, `planning`, `improve`,
+  `docs`, `markov`) or manual edit. Group by effort only if it helps.
 
-- `verified`: local evidence supports claim/fix.
-- `partial`: part supported; important gaps remain.
-- `not addressed`: evidence absent or contradicts claim.
-- `cannot determine`: ctx insufficient.
+When verifying a claim or a proposed fix, use statuses: `verified`, `partial`,
+`not addressed`, `cannot determine`.
 
-## Notes
+## Banned (these are the failure modes to avoid)
 
-- `audit` works at any workflow stage. Output can feed `feature`, `planning`,
-  `improve`, `docs`, `markov`, or manual edits.
-- Report file request without path -> ask for path before writing.
-- Conflicting evidence -> name likely source of truth + why.
-- No material issues -> say so, name residual uncertainty/test gap.
+- Inflating a non-issue into a paragraph. If the gate didn't pass it, it is not
+  here at all.
+- Generic advice — "add tests", "improve documentation", "consider
+  refactoring" — without naming the exact gap, the missing decision, and the
+  sufficient end state.
+- Multi-paragraph prose per finding. Heavy, hedging language. Restating the
+  obvious.
+- Padding the count. Three real findings beat fifteen with twelve fillers.
+- Asserting behavior you did not read in the source.
+
+## Language
+
+Write the report in the working language of the target project (detect from
+`./workflow/`, docs, and the request; fall back to the user's language). Keep
+paths, commands, identifiers, framework and package names, and status markers
+in their original spelling. Do not mix languages within the report unless a
+quoted term requires it.

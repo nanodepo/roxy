@@ -7,267 +7,155 @@ description: >
   feature".
 ---
 
-# Feature
+# Feature — Capture a Feature Brief
 
 ## Purpose
 
-Turn raw request into self-contained brief at
-`./workflow/features/{slug}/feature.md`; register in `./workflow/PLAN.md` as
-`[ ]`.
+This skill turns a raw feature request into a self-contained brief at
+`./workflow/features/{slug}/feature.md` and registers the feature in
+`./workflow/PLAN.md` with status `[ ]`. It opens the feature branch of the
+pipeline: it records what the user wants and why, the expected result, and the
+boundaries — richer than a one-line idea, smaller than a PRD or a plan.
 
-First feature workflow stage. Capture ask, why, known ctx, scope, non-goals,
-open questions. Richer than idea, smaller than PRD/plan.
+The brief explains the feature to a future planner or implementer who has no
+access to this conversation. It guides rather than dictates: its size is
+proportional to the feature's complexity, and a few well-written sentences are
+a complete brief for a simple feature.
 
-Does not decide impl, architecture, UI design, tests, docs, or task breakdown.
+The skill does not decide implementation, architecture, UI design, tests,
+documentation, or task breakdown — those belong to later stages.
 
 ## Parameters
 
-Use `args` as raw request:
+`args` is the raw feature request:
 
 ```txt
 <feature request>
 ```
 
-- Present -> full string = request.
-- Empty -> infer from current user msg.
-- Too vague to identify feature essence -> ask one short clarification before
-  writing files.
+- `args` present → the full string is the request.
+- `args` empty → infer the request from the current user message.
+- No identifiable feature in either → ask the user for one before doing
+  anything else.
 
 ## Strict Rules
 
-- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
-- Own only `./workflow/features/{slug}/feature.md`,
-  `./workflow/features/{slug}/`, matching `./workflow/PLAN.md` entry.
-- Do not write `plan.md`, `design.md`, `tests.md`, `NN-task.md`, product code,
-  PRDs, acceptance criteria, impl tasks.
-- Do not call downstream skills. Stop after brief + `PLAN.md` entry.
-- Step 4 must call `mcp__sequential-thinking__sequentialthinking`.
-- Ask only blocking clarifications: answer changes essence, problem/need,
-  user/context, expected result, or scope boundary.
-- Do not ask impl/architecture/UI/test/docs questions. Record as open questions
-  only when relevant for later planning.
-- Current feature intent only. No biography, deltas, migration notes, removed
-  behavior.
-- Later test mention = live product invariant to protect, not incident/deletion.
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Own only `./workflow/features/{slug}/` with its `feature.md` and the matching
+  entry in `./workflow/PLAN.md`. Do not write `plan.md`, `design.md`,
+  `tests.md`, `NN-task.md`, product code, or documentation.
+- Do not invoke downstream skills. Finish with the brief, the `PLAN.md` entry,
+  and a next-step recommendation in chat.
+- Ask the user only questions whose answers change the brief — the essence,
+  the problem, the user or context, the expected result, or a scope boundary.
+  Do not ask implementation, architecture, design, test, or docs questions.
+- Close every open question before writing the brief. The written `feature.md`
+  contains no unresolved questions.
+- Describe current intent only: no biography, no deltas, no migration notes,
+  no references to removed behavior.
 
 ## Language Notice
 
-Write user-facing chat output and generated/rewritten artifacts in target
-project working language. Detect from `./workflow/`, docs, user msg. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translation.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, cmds, tool names, code identifiers,
-framework/package names, status markers, established product terms unchanged.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
 
-Do not mix languages in one artifact unless canon already does so or source term
-requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
-## Flow
+## Steps
 
-Use task planning mode. Close items one by one.
+Use task planning mode (todo list) with one item per step.
 
-### 1. Capture Request
+1. **Capture the request.** Take it from `args` or the current message.
+   Extract the asked capability or change, the problem behind it when stated,
+   the affected user or context, the expected result in the user's words, and
+   any explicit limits or exclusions. If the request mixes several unrelated
+   features, ask which one to capture — one `feature.md` is one coherent
+   feature.
 
-Read request from `args` or current user msg. Extract:
+2. **Research.** Read only the workflow context that helps understand the
+   feature's meaning: `./workflow/PROJECT.md`, `./workflow/VISION.md`,
+   `./workflow/ROADMAP.md`, `./workflow/PLAN.md`, and `./workflow/DESIGN.md`
+   when the request touches UI. Check `./workflow/PLAN.md` entries and
+   `./workflow/features/` for an existing feature covering the request: a
+   duplicate → stop and report the existing slug; a distinct extension →
+   continue and note the relationship. Do not scan product code unless the
+   request names a concrete code area that the workflow files cannot explain.
+   While researching, collect every question that the request and the context
+   cannot answer — do not ask them one by one.
 
-- work type: problem/solution/improvement/fix/refactor/unclear
-- main capability/change
-- domain terms/named objects
-- user/actor/team/context when present
-- expected result in user words
-- explicit limits/exclusions/urgency/constraints
+3. **Ask the accumulated questions in one batch.** First resolve what you can
+   from the request and the files read. Then ask the remaining questions —
+   typically up to three — in a single message. For each question put the
+   recommended answer first, marked `(Recommended)` with a short reason, and
+   offer only materially different alternatives. If nothing blocks the brief,
+   skip this step.
 
-No identifiable feature -> ask one concise clarification, stop.
+4. **Synthesize.** With the answers in hand, settle the brief's content: the
+   essence and motivation, the expected result, what is in and out of scope,
+   and any context or terms a future reader genuinely needs. Pick a stable
+   `kebab-case` slug (2–5 words, lowercase Latin letters, digits, hyphens)
+   named after the domain intent, not an implementation detail; if the slug is
+   taken, add a meaningful qualifier rather than a number.
 
-### 2. Read Needed Context
+5. **Write the brief.** Create `./workflow/features/{slug}/` and write
+   `feature.md` per Artifact Requirements.
 
-Read only helpful files:
+6. **Register in PLAN.md.** Add the feature line per Updating PLAN.md.
 
-- `./workflow/PROJECT.md`
-- `./workflow/VISION.md`
-- `./workflow/ROADMAP.md`
-- `./workflow/DESIGN.md` only for UI/interaction request
-- `./workflow/PLAN.md`
+7. **Report.** Summarize the brief in chat and recommend the next step: a
+   simple feature goes straight to `implement` (no plan needed); a UI feature
+   with non-trivial UX goes to `design` (even when no plan is needed);
+   everything else goes to `planning`. One or two lines, naming the skill.
 
-Use `rg --files`, `find`, direct reads for `./workflow/features/`.
+## Artifact Requirements
 
-Keep ctx narrow. Do not scan product code unless request names concrete code
-area and workflow files cannot explain feature meaning.
+`./workflow/features/{slug}/feature.md` is a human-readable narrative brief
+written in prose, not a questionnaire. Core sections:
 
-### 3. Check Duplicates
+- **What and why** — the essence of the feature and the motivation behind it:
+  the problem or need, the affected user or context.
+- **Expected result** — what becomes true when the feature is done, in product
+  terms, without acceptance criteria or test plans.
+- **Boundaries** — what is in scope and what adjacent work is deliberately
+  out, with the reason when it is not obvious.
 
-Read `./workflow/PLAN.md` entries + `./workflow/features/` folders.
+Add another section — context, domain terms, relation to an existing feature —
+only when it carries a decision a future reader needs. Do not pad a simple
+feature: a brief of a few sentences is complete when the essence, result, and
+boundaries are clear.
 
-If active feature may cover request:
+The brief is ready when `planning` or `implement` can proceed from it without
+this conversation's history.
 
-- read existing `feature.md`
-- duplicate -> stop, report existing slug
-- distinct extension -> continue; record relationship
+## Updating PLAN.md
 
-Do not archive/merge/rename/change existing features.
+Add one entry with status `[ ]`. If `./workflow/PLAN.md` exists, preserve its
+structure and statuses, place the entry near other active features, and do not
+rewrite other entries or duplicate the slug. If it is missing, create a minimal
+`PLAN.md` with only the new entry — no other canon files.
 
-### 4. Synthesize
-
-Call `mcp__sequential-thinking__sequentialthinking`. Decide:
-
-- one current-state sentence for ask
-- request type: problem/solution/improvement/fix/refactor/mixed
-- problem/need, grounded in local ctx when used
-- affected user/actor/team/system/context
-- expected result without acceptance criteria
-- hidden assumptions
-- edge cases planning must notice
-- in-scope work
-- adjacent non-goals to prevent scope creep
-- blocking vs later open questions
-- duplicate/related active feature
-- stable `kebab-case` slug by domain intent, not impl detail
-
-Filters:
-
-- Classify clarifications before asking; ask only if answer changes essence,
-  problem, user/context, result, boundaries.
-- Pressure-test assumptions. Blocking unsupported assumption -> ask; otherwise
-  record open question.
-- Edge cases/exceptions -> boundaries or open questions only. Do not define
-  expected behavior here.
-- Non-goal = adjacent work deliberately outside feature.
-
-### 5. Ask Blockers Only
-
-Resolve from request, workflow files, existing briefs first.
-
-Ask max 3 concise questions in one block. For each:
-
-- recommended answer first with `(Recommended)` + short reason
-- only materially different options
-- no impl/architecture/design/test/docs/task sequencing
-
-Non-blocking unclear detail -> `Open Questions` in `feature.md`.
-
-### 6. Create Brief
-
-Choose slug:
-
-- lowercase Latin letters, numbers, hyphens
-- 2-5 words
-- start/end letter or number
-- avoid tech unless feature is about that tech
-- existing slug -> add meaningful qualifier, not numeric suffix when possible
-
-Create `./workflow/features/{slug}/`; write `feature.md` via Artifact Req.
-
-### 7. Update `PLAN.md`
-
-Add one service line with `[ ]`.
-
-If `./workflow/PLAN.md` exists, preserve structure/statuses. Add near active
-features or append if no clear section. Do not rewrite other entries; avoid
-duplicate line for slug.
-
-If missing, create minimal `./workflow/PLAN.md` with new entry only. No other
-canon files.
-
-Default entry shape, unless local pattern stronger. Localize visible labels:
+Default entry shape, unless the local pattern differs; localize visible labels:
 
 ```md
 - [ ] `{slug}` - <short feature title>
   - brief: `./workflow/features/{slug}/feature.md`
 ```
 
-## Artifact Req
-
-Create self-contained `./workflow/features/{slug}/feature.md`. Follow Language
-Notice.
-
-Use shape below. Translate all visible headings, labels, placeholders, examples:
-
-```md
-# Feature: <feature name>
-
-## Summary
-
-<1-3 sentences describing current feature intent.>
-
-## Request Type
-
-- Type:
-- Why:
-
-## Problem or Need
-
-- Problem:
-- Evidence or context:
-
-## User or Context
-
-- User / actor:
-- Situation:
-
-## Expected Result
-
-- Result:
-- Success signal:
-
-## Scope
-
-- In:
-- Related existing feature:
-
-## Non-Goals
-
-- Out:
-- Reason:
-
-## Terms
-
-- Term:
-- Meaning:
-
-## Edge Cases and Exceptions
-
-- Case:
-- Why it matters:
-
-## Open Questions
-
-- Question:
-- Impact:
-
-## Source Context
-
-- User request:
-- Project files read:
-```
-
-Adapt:
-
-- Simple feature -> short.
-- Omit empty optional bullets.
-- `Open Questions`: mark blocks planning vs later.
-- No acceptance criteria, EARS, required user-story format, impl tasks, design
-  decisions, test plans, code snippets.
-
-Ready when later `planning` can proceed without chat history:
-
-- essence clear
-- problem/need stated
-- user/context known when available
-- expected result not over-designed
-- scope/non-goals explicit
-- terms defined
-- edge cases visible
-- open questions named with impact
-
 ## Notes
 
-- Missing `PROJECT.md`, `VISION.md`, `ROADMAP.md`, `DESIGN.md` ok. Use
-  available ctx.
-- Missing `./workflow/features/` ok. Create needed dir.
-- Request is plan/design/test/docs/impl for existing feature -> report matching
-  downstream skill; do not create new brief.
-- Several unrelated features -> ask which one to capture first. One `feature.md`
-  = one coherent feature.
+- Missing `PROJECT.md`, `VISION.md`, `ROADMAP.md`, or `DESIGN.md` is fine —
+  work with the context that exists. Create `./workflow/features/` if absent.
+- A request that is really planning, design, testing, docs, or implementation
+  for an existing feature → report the matching downstream skill instead of
+  creating a new brief.

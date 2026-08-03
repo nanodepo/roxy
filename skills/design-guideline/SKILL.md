@@ -8,227 +8,127 @@ description: >
   where the project's design rules live.
 ---
 
-# Design Guideline
+# Design Guideline — Record the Visual Canon
 
 ## Purpose
 
-Establish project visual canon in `./workflow/DESIGN.md`. Extract visual lang
-from existing UI when present; ask user only when UI absent/thin. Sole owner of
-`./workflow/DESIGN.md`.
+This skill establishes the project's visual canon in `./workflow/DESIGN.md`.
+It extracts the visual language from the existing UI when one exists, and asks
+the user only when the UI is absent or too thin to answer. It is the sole
+owner of `./workflow/DESIGN.md`.
 
-Project-level stage after `initialize`, usually after `roadmap`. Output feeds
-`design`, `feature`, `planning`, `implement`, `docs` for UI work.
-
-Does not write feature `design.md`, implement UI, plan features, write tests,
-generate token files/component lib, or run git ops.
+It is a project-level stage after `initialize`, usually after `roadmap`. The
+canon feeds `design`, `feature`, `planning`, `implement`, and `docs` for any
+UI work. The skill does not write feature-level `design.md`, implement UI,
+plan features, write tests, or generate token files or component libraries —
+components are described as project conventions, not implementation.
 
 ## Strict Rules
 
-- No git ops: no status, branch, commit, push. Worktree expected dirty.
-- Step 4 must call `mcp__sequential-thinking__sequentialthinking`.
-- Create/rewrite only `./workflow/DESIGN.md`. `./workflow/PLAN.md` write only
-  appends design tails.
-- `./workflow/DESIGN.md` = current canon only: no history, deltas, temp notes,
-  old-version comparisons.
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Create or rewrite only `./workflow/DESIGN.md`; in `./workflow/PLAN.md`
+  append design tails only.
+- `DESIGN.md` is the current canon only: present tense, no history, deltas,
+  temporary notes, or old-version comparisons.
 - Record observable, enforceable rules. Separate confirmed canon from open
-  decisions.
-- Do not generate UI code, `tokens.json`, `tokens.css`, token files, component
-  lib. Describe comps as project conventions, not impl.
+  decisions; one screen is a sample, not whole-system proof — a project-wide
+  rule needs repeated evidence.
+- Reuse the existing design system, tokens, and components. Do not invent a
+  parallel canon, and do not generate UI code or token files.
 
 ## Language Notice
 
-Write user-facing chat output and generated/rewritten artifacts in target
-project working language. Detect from `./workflow/`, docs, user msg. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translation.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, cmds, tool names, code identifiers,
-framework/package names, status markers, established product terms unchanged.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
 
-Do not mix languages in one artifact unless canon already does so or source term
-requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
-## Flow
+## Steps
 
-Use task planning mode. Close items one by one.
+Use task planning mode (todo list) for this multi-step flow.
 
-### 1. Read Project Context
+1. **Read the project context.** Read `./workflow/PROJECT.md`, `VISION.md`,
+   and `ROADMAP.md` if they exist, for audience, purpose, and platform
+   constraints. Missing files do not stop the skill.
 
-Read if exists; skip missing:
+2. **Discover visual sources.** Before asking the user, search the frontend
+   code and components, CSS and Tailwind config, theme and design tokens, UI
+   libraries, Storybook, and any UI kit or references.
 
-- `./workflow/PROJECT.md` — stack, frameworks, run/deploy.
-- `./workflow/VISION.md` — direction.
-- `./workflow/ROADMAP.md` — goals.
+3. **Extract observable signals.** Color, typography, spacing, radius,
+   shadow; layout, grid, breakpoints, density; components with their
+   variants and empty/loading/error states; interaction states and motion;
+   icons, imagery, forms, navigation.
 
-Use for audience, purpose, platform constraints.
+4. **Synthesize the canon.** Separate confirmed canon from assumptions and
+   open decisions. Describe color and typography by role and usage limits,
+   not raw values alone; use token layers (primitive, semantic, component)
+   where they clarify. Consider accessibility: contrast, focus visibility,
+   reduced motion, dark mode where relevant. Guard against generic output:
+   no thoughtless SaaS palettes, default hero layouts, or decorative effects
+   without function. Note the gaps existing material cannot answer.
 
-### 2. Discover Visual Sources
+5. **Ask the user only if needed.** When the UI is absent or thin, ask short
+   focused questions about purpose, audience, tone, platform, and brand
+   direction — grouped in one batch before writing, with the recommended
+   option first marked `(Recommended)` and a brief reason. When the existing
+   UI answers the canon, skip this step.
 
-Search before asking user:
+6. **Write `./workflow/DESIGN.md`** per Artifact Requirements.
 
-- frontend code/comps
-- CSS, Tailwind config, `@theme`, shadcn/theme config, design tokens
-- design system / UI lib
-- Storybook, UI kit, screenshots, refs
+7. **Append design tails.** Add to `./workflow/PLAN.md` only design tails for
+   unresolved visual decisions that block a unified canon. No status changes
+   or other writes. If `PLAN.md` is missing, keep unresolved decisions in the
+   open-decisions part of `DESIGN.md`.
 
-Reuse existing system/tokens/comps. Do not invent parallel canon.
+8. **Report.** State the path written, the source of the canon (existing UI
+   versus user answers), the main visual decisions, and any design tails. End
+   with the next-step recommendation: the next missing canon artifact —
+   `roadmap` when `VISION.md`/`ROADMAP.md` is absent, `architecture` when
+   `ARCHITECTURE.md` is absent — or `feature` when the project canon is
+   complete.
 
-### 3. Extract Signals
+## Artifact Requirements
 
-Extract only observable:
+`./workflow/DESIGN.md` is a self-contained document that reads without
+creation context. Core sections:
 
-- color, type, spacing, radius, shadow
-- layout, grid/container, breakpoints, density
-- comps, variants, empty/loading/error states
-- hover/focus/active/disabled, motion
-- icons, imagery, charts, forms, nav
+- **Visual direction** — the core aesthetic, what the interface must convey,
+  what to avoid, grounded in audience and platform.
+- **Colors and typography** — values with their semantic roles, usage limits,
+  and contrast notes; type scale and readability rules with fallbacks.
+- **Layout** — grid or container, spacing scale, breakpoints, density.
+- **Components and interactions** — core project components as conventions,
+  their variants and states (including empty/loading/error), interaction
+  states and motion.
+- **Accessibility** — contrast, focus visibility, touch targets; reduced
+  motion, high contrast, and dark mode where applicable.
 
-One screen = sample, not whole-system proof. Need repeated evidence before
-project-wide rule.
+Add a further section (brand, icons, data visualization, platform-specific
+conventions) only when it carries a rule the project actually needs. For
+Tailwind projects the canon may rely on CSS variables, `@theme`, and
+responsive utilities — never assume a Tailwind version or require migration.
+For mobile projects record safe areas, touch targets, and platform navigation
+conventions.
 
-### 4. Analyze
+## Updating PLAN.md
 
-Call `mcp__sequential-thinking__sequentialthinking`. Synthesize:
-
-- confirmed canon vs assumptions vs open decisions
-- separate concerns: color, type, comps, visual assets
-- product ctx: purpose, audience, tone, platform, differentiation
-- color/type by role + usage limits, not raw values only
-- token layers where useful:
-  - primitive: `#111827`, `16px`, `Inter`
-  - semantic: `text-primary`, `surface-muted`, `accent`
-  - component: `button-bg`, `card-border`
-- reduced motion, high contrast, dark mode relevance
-- anti-generic criteria: no thoughtless SaaS palettes, default hero layouts,
-  random gradients, decorative effects without function
-- gaps existing material cannot answer
-
-### 5. Ask User Only If Needed
-
-If UI absent/thin, ask short focused questions: purpose, audience, tone,
-platform, brand direction, differentiation. Group questions. Each option:
-recommended first with `(Recommended)` + brief reason.
-
-If UI answers canon, skip.
-
-### 6. Write `./workflow/DESIGN.md`
-
-Create/update via Artifact Req. Current canon only; no history/deltas.
-
-### 7. Quality Check
-
-Before finish verify:
-
-- hierarchy, consistency, accessibility, responsive addressed
-- critical reqs distinct from taste recs
-- color/type described by role + usage limits
-- comps described as conventions, no impl detail
-- accessibility/responsive concrete
-- doc reads standalone, no project history needed
-
-### 8. Append Design Tails
-
-Add to `./workflow/PLAN.md` only design tails blocking unified canon:
-unresolved visual decisions needing follow-up. No statuses/other writes.
-
-If `./workflow/PLAN.md` missing, put unresolved decisions in `Open decisions`
-of `DESIGN.md`.
-
-### 9. Report
-
-Short report: `./workflow/DESIGN.md` path, source of canon (existing UI vs user
-answers), main visual decisions fixed, design tails added.
-
-## Artifact Req
-
-`./workflow/DESIGN.md` semantic shape. Translate all visible headings, labels,
-table headers, placeholders, examples. Omit section only when not applicable.
-
-```md
-# DESIGN.md
-
-## Purpose
-The project's unified visual canon.
-
-## Product context
-- Audience
-- Interface goals
-- Tone and character
-- Platform constraints
-
-## Visual direction
-- Core aesthetic
-- What the interface must convey
-- What to avoid
-
-## Brand
-- Name/logo, if any
-- Interface voice
-- Acceptable visual associations
-
-## Colors
-- Primitive values
-- Semantic roles
-- Status colors
-- Contrast/accessibility notes
-
-## Typography
-- Headings
-- Body/UI text
-- Mono/code, if needed
-- Fallbacks
-- Scale and weight rules
-
-## Layout
-- Grid/container
-- Spacing scale
-- Breakpoints
-- Density rules
-
-## Components
-- Core project components
-- Variants
-- States
-- Empty/loading/error states
-
-## Interactions
-- Hover/focus/active/disabled
-- Motion
-- Feedback
-- Keyboard behavior, if applicable
-
-## Accessibility
-- Contrast
-- Focus visibility
-- Touch targets
-- Reduced motion/high contrast/dark mode, if applicable
-
-## UI conventions
-- Icons
-- Imagery
-- Data visualization
-- Forms
-- Navigation
-
-## Open decisions
-- Only questions that block a unified canon
-```
-
-Format rules:
-
-- Colors: primitive value + role: primary text, muted text, surface, border,
-  accent, status.
-- Type: fallbacks + readability rules, not font names only.
-- Tailwind projects: canon may use CSS vars, `@theme`, dark mode, focus states,
-  responsive utilities; never assume Tailwind version or require migration.
-- Mobile projects: record safe areas, touch targets, nav patterns, platform
-  conventions.
+Append only design service tails: unresolved visual decisions blocking a
+unified canon, marked `[ ]`. Do not add feature entries, change feature
+statuses, or modify non-design tails.
 
 ## Notes
 
-- No `./workflow/` + no frontend code -> canon rests on user answers. Say so in
-  report.
-- Follow steps literally. Produced `DESIGN.md` must read without creation
-  context.
+- With no `./workflow/` and no frontend code, the canon rests on user
+  answers; say so in the report.

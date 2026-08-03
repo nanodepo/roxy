@@ -1,57 +1,72 @@
 ---
 name: markov
 description: >
-  Normalizes a single local document by the Markov laws of agentic development —
-  rewrites the passed file in place so it describes a sufficient present, free of
-  creation biography, delta wording, and operational clutter. Use when the user
-  says "normalize document", "apply the Markov laws", "bring the file to canon",
-  "markov this file", or names a file to clean up by the Markov laws.
+  Normalizes whatever the user points at by the Markov laws of agentic
+  development — files, directories, tests, an architectural concept, or
+  material given in the conversation — so the target describes a sufficient
+  present, free of creation biography, delta wording, and operational clutter.
+  Local files are rewritten in place; conversational material is returned
+  normalized. Use when the user says "normalize", "apply the Markov laws",
+  "bring to canon", "markov this", or points at any target to clean up by the
+  Markov laws.
 ---
 
-# Markov — Normalize a Document by the Markov Laws
+# Markov — Normalize a Target by the Markov Laws
 
 ## Purpose
 
-This skill normalizes one passed local document by the Markov laws of agentic
-development. It reads the file, classifies its type, raises only the local
-context needed to judge current truth, applies the full set of laws iteratively,
-and rewrites the passed file in place.
+This skill applies the Markov laws of agentic development to whatever the user
+points at. The laws are substrate-independent: they govern any artifact that
+carries state — a document, an instruction file, a class, a test suite, an
+architectural concept spread across a repository, an article drafted in chat.
+The skill grounds the pointed target in concrete material, raises only the
+local context needed to judge current truth, walks the full set of laws, and
+normalizes the material so it describes a sufficient present.
 
-The skill edits the document directly — it does not produce a recommendation
-report instead of the edit. It works on exactly one file at a time: a markdown
-document, an instruction file, a class, or a test file. It does not audit the
-whole system and does not create new artifacts.
+The skill changes the target directly — it does not produce a recommendation
+report instead of the edit. Local files are rewritten in place; a target that
+lives only in the conversation (pasted text, a draft, a described design) is
+returned normalized in chat, since there is nothing to overwrite. The skill
+does not audit the system beyond the target and does not create new artifacts.
 
 The skill works fully from this `SKILL.md`. The complete law set is embedded
 below as its working base; no other file is required.
 
 ## Parameters
 
-`args` is the path to one local file:
+`args` points at the target to normalize. Any form is valid:
 
 ```txt
-<path-to-document>
+<path> [<path> ...]    # files and/or directories
+<glob>                 # e.g. tests/Feature/Billing*
+<concept>              # e.g. "how domain events are named", "the Actions layer"
+<material in chat>     # pasted text, a draft, a described artifact
 ```
 
-- The path points to a single existing local file.
-- `args` is empty, or the user gave no path → stop and ask for one local file
-  path. Do not guess a target.
-- `args` names more than one path → stop and ask which single file to normalize.
-  The skill normalizes one document per run.
-- The path does not exist or is not readable → stop and report the path back to
-  the user.
+- Paths and globs resolve to existing local files; a directory resolves to the
+  files it contains, recursively, skipping binary and generated artifacts.
+- A concept resolves through local search to its material footprint — every
+  place where the concept is stated: instructions, documentation, code, tests.
+  The footprint is the scope. If it stays ambiguous, stop and ask the user to
+  narrow it.
+- Material given in the conversation is its own scope; nothing needs resolving.
+- `args` is empty and the request names no target → stop and ask for one. Do
+  not guess a scope.
+- A path does not exist or is not readable → stop and report it back to the
+  user.
+- The resolved scope is unexpectedly large (rough guide: more than ~20 files)
+  → show the resolved list and ask the user to confirm or narrow it before
+  rewriting.
 
 ## Strict Rules
 
 - Do not perform git operations in any form: no status checks, diffs, logs,
   branches, commits, pushes, or checkout commands. The working tree is expected
   to be dirty; the user manages git.
-- Call `mcp__sequential-thinking__sequentialthinking` at the analysis step
-  (Step 4), after reading the document and its context and before rewriting.
-  This is the reasoning step where the per-law normalization plan is built.
-- Rewrite only the file passed in `args`. Do not edit related documents,
-  neighboring artifacts, or project code, even when they share the same problem.
-- Do not produce a separate audit file. The output is the rewritten document
+- Normalize only material inside the resolved scope. Do not edit related
+  documents, neighboring artifacts, or project code outside the scope, even
+  when they share the same problem.
+- Do not produce a separate audit file. The output is the normalized target
   plus a short chat summary.
 - Do not follow or fetch external links. Work only with local context.
 - Do not change the meaning of any law below when applying it.
@@ -91,6 +106,17 @@ The discipline is not to accumulate traces but to normalize state: not "make the
 agent know what happened" but "make what exists sufficient". Memory is not an
 automatic asset — in agentic work it often becomes clutter with authority: an
 artifact that looks like knowledge but is the residue of an old task.
+
+### Substrate independence
+
+The laws speak of code, tests, and documentation because that is where agents
+live, but they hold for any medium that carries state. Biography is any trace
+of how a thing came to be that does not govern what it is. Delta wording is any
+"was X, became Y" where only Y is true. A monument is any element kept because
+it once mattered, not because it still does. Sediment is any rule that outlived
+its reason. When the target is an article, an architectural concept, a design,
+or something stranger, translate each law to the medium and apply its meaning,
+not its examples.
 
 ### Definitions
 
@@ -293,46 +319,62 @@ operational authority.
 The procedure has nested reasoning. Use task planning mode (todo list / task
 plan, whichever is available) with one item per step and close them in order.
 
-1. **Parse `args`.** Expect exactly one local file path. Empty, missing, or more
-   than one path → stop and ask the user for one local file path, as described
-   in Parameters.
+1. **Resolve the target.** Turn `args` and the request into concrete material:
+   a list of local files, or content given in the conversation, as described in
+   Parameters. A concept resolves to its material footprint through local
+   search. No target → stop and ask for one. An ambiguous concept or an
+   unexpectedly large footprint → show what resolved and ask the user to
+   narrow or confirm. Fix a deterministic processing order (as given, then
+   alphabetical).
 
-2. **Read and classify the document.** Read the passed file. If it does not
-   exist or is not readable → stop and report the path. Classify its type, since
-   type decides which laws bite hardest:
+2. **Read and classify the material.** Read everything in the scope. A path
+   that does not exist or is not readable → stop and report it. Classify the
+   form of each unit, since form decides which laws bite hardest:
    - **Instruction file** (`AGENTS.md`, `CLAUDE.md`, `SKILL.md`, `.cursor/rules`)
      — instruction sediment, mossy permission notes, and biography carry
      abnormally high authority here.
    - **Plain document** (`README.md`, `AUDIT.md`, a `./workflow/` artifact, a
-     spec or concept page) — delta documentation and biography are the main
-     targets.
+     spec, a concept page, an article) — delta documentation and biography are
+     the main targets.
    - **Code or test file** (a class, a test module) — apply the invariant rules:
      drop tests for the obvious, rename monument tests around live invariants,
      remove historical comments from hot code.
+   - **Concept footprint** (a convention, a pattern, a layer stated across
+     several files) — the unit is the concept itself: one canonical statement
+     of it inside the scope, no contradicting paraphrases, no stale variants.
+   - **Conversational material** (pasted text, a draft, a described artifact) —
+     treat as a plain document and translate the laws to its medium, per
+     Substrate independence.
 
 3. **Raise minimal local context.** Read other files only when they are needed
-   to judge what is currently true:
-   - Read `AGENTS.md` (or `CLAUDE.md`) when the document depends on repository
+   to judge what is currently true, and read shared context once for the whole
+   scope:
+   - Read `AGENTS.md` (or `CLAUDE.md`) when the documents depend on repository
      canon.
-   - Read a neighboring `./workflow/` artifact when the document references or
+   - Read a neighboring `./workflow/` artifact when a document references or
      depends on it.
-   Stop reading once you can judge the document's current truth. Do not over-read
+   Stop reading once you can judge the scope's current truth. Do not over-read
    — extra context competes with the task.
 
-4. **Analyze with `mcp__sequential-thinking__sequentialthinking`.** Walk every
-   law in "The Markov Laws" above. For each law decide whether it applies to
-   this document and what concretely to change. Produce a normalization plan: the
-   specific biography to remove, delta wording to collapse, stale rules to
-   delete, conflicting statements to resolve into one canonical form, test names
-   to rename around invariants, obvious tests to drop, operational clutter to
-   cut. Note anything you keep and the law (Law 4) that justifies keeping it.
+4. **Walk the laws.** Walk every law in "The Markov Laws" above explicitly,
+   before changing anything. For each unit of material decide which laws apply
+   and what concretely to change: the specific biography to remove, delta
+   wording to collapse, stale rules to delete, test names to rename around
+   invariants, obvious tests to drop, operational clutter to cut. Then make a
+   cross-file pass within the scope: a rule stated in several in-scope files
+   keeps exactly one canonical home; statements that conflict between in-scope
+   files resolve into one canonical form. Conflicts with artifacts outside the
+   scope are only noted for the summary. Note anything you keep and the law
+   (Law 4) that justifies keeping it.
 
-5. **Rewrite the document in place.** Apply the plan and overwrite the passed
-   file directly — this is the skill's purpose, not a recommendation. The
-   rewritten document:
+5. **Normalize the target.** Apply the plan and change the material directly —
+   this is the skill's purpose, not a recommendation. Local files are
+   overwritten in place; conversational material is returned normalized in
+   chat. Every normalized unit:
    - describes the current state in the present tense, without creation
      biography or "was X, now Y" deltas;
-   - holds one canonical statement per rule, with no contradicting paraphrases;
+   - holds one canonical statement per rule — within the file and across the
+     scope — with no contradicting paraphrases;
    - keeps historical information only when it passes the burden-of-retention
      check;
    - for code and tests, names invariants rather than incidents and carries no
@@ -340,31 +382,37 @@ plan, whichever is available) with one item per step and close them in order.
    - does not mix instruction with audit, or one responsibility type with
      another;
    - preserves the document's original language and its still-valid content.
-   The result should look boring — as if the stale material never had authority.
+   A file in the scope left with no live content after normalization is
+   deleted — forgetting is maintenance — and the deletion is reported. The
+   result should look boring — as if the stale material never had authority.
 
-6. **Report to chat.** Write a short chat summary: the file path, its type, and
-   the classes of problems fixed (for example: biography removed, deltas
-   collapsed, stale rule deleted, conflicting statements resolved, test names
-   normalized, obvious test dropped, clutter cut). If nothing needed changing,
-   say so plainly. State that the file was rewritten in place so the user can
-   review it with their own tools.
+6. **Report to chat.** Write a short chat summary: the resolved scope, then one
+   line per unit — its form and the classes of problems fixed (for example:
+   biography removed, deltas collapsed, stale rule deleted, conflicting
+   statements resolved, test names normalized, obvious test dropped, clutter
+   cut, file deleted). Name the units that needed no change. Surface
+   observations about out-of-scope artifacts that share the same problems
+   instead of editing them. State that the files were rewritten in place so the
+   user can review them with their own tools.
 
 ## Artifact Requirements
 
-- **The rewritten document** — the file passed in `args`, overwritten in place.
-  Same path, same purpose, same language; normalized content.
-- **Chat summary** — a short report of the file, its type, and the problem
-  classes fixed. No separate report file is created.
+- **The normalized target** — every file in the resolved scope that needed
+  changes, overwritten in place (a file with no live content left is deleted);
+  for conversational material, the normalized content returned in chat. Same
+  paths, same purposes, same languages; normalized content.
+- **Chat summary** — a short report of the resolved scope, each unit's form,
+  and the problem classes fixed. No separate report file is created.
 
 ## Notes
 
-- The skill normalizes one document per run. To normalize several files, run it
-  once per file.
-- The skill never edits files other than the one passed, even when a neighboring
-  file has the same problem. Surface such observations in the chat summary
-  instead.
+- The resolved scope is the unit of work: cross-file normalization —
+  deduplication and conflict resolution — happens only between files inside it.
+- The skill never edits files outside the resolved scope, even when a
+  neighboring file has the same problem. Surface such observations in the chat
+  summary instead.
 - For a code or test file, normalize meaning and test framing, not behavior: do
   not change what the code does, only remove clutter, historical comments, and
   episode-shaped test names.
-- If the document is already a sufficient present — current, biography-free,
+- If the target is already a sufficient present — current, biography-free,
   single-responsibility — leave it unchanged and say so in the summary.

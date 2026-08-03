@@ -2,28 +2,30 @@
 name: docs
 description: >
   Creates or updates the project's user and technical documentation — the root
-  README.md and pages under ./docs/concept, ./docs/spec, ./docs/tech — recording
-  the current state of the product. Use when the user says "write documentation",
-  "update documentation", "document the project", "document a feature", or asks
-  to document implemented behavior.
+  README.md and pages under ./docs/concept, ./docs/spec, ./docs/tech —
+  recording the current state of the product. Use when the user says "write
+  documentation", "update documentation", "document the project", or "document
+  a feature".
 ---
 
-# Docs
+# Docs — Record the Current State of the Product
 
 ## Purpose
 
-Write/maintain project user + tech docs. Record current product: purpose,
-behavior, build/run. Reader understands project without dev history.
+This skill writes and maintains the project's user and technical
+documentation: what the product is for, how it behaves, and how to build and
+run it. A reader understands the project from the docs alone, without knowing
+its development history.
 
-Runs late, usually after `test`. Reads canon + feature artifacts; owns only root
-`README.md` and `./docs/concept/`, `./docs/spec/`, `./docs/tech/`.
+It runs late in the feature pipeline, usually after `test`. It owns only the
+root `README.md` and the pages under `./docs/concept/`, `./docs/spec/`, and
+`./docs/tech/`. When it documents one feature, it also reconciles the
+neighboring owned pages that the new state contradicts, so the documentation
+stays a true statement about the product. In feature-update mode it marks the
+documented feature `[/]` archived in `./workflow/PLAN.md`.
 
-In feature-update mode, marks the documented feature `[/]` archived in
-`./workflow/PLAN.md` once its behavior is captured.
-
-Does not write audit report, product code, tests, or feature `./workflow/`
-artifacts. No git ops. Mismatch recs belong to `audit`; `docs` fixes docs and
-only notes missing docs as docs tails.
+It does not write product code, tests, audit reports, or feature `./workflow/`
+artifacts — those belong to `implement`, `test`, and `audit`.
 
 ## Parameters
 
@@ -33,193 +35,140 @@ Optional `args`:
 [<feature-slug>]
 ```
 
-- `<feature-slug>` under `./workflow/features/{slug}/` -> feature-update mode:
-  document implemented feature behavior.
-- No args -> infer mode from project docs state.
+- `<feature-slug>` under `./workflow/features/{slug}/` — feature-update mode:
+  document the implemented behavior of that feature.
+- No args — infer the mode: with no docs present, document the whole project
+  from scratch; with docs present, ask one short question whether the user
+  wants a whole-project pass or a feature update with a slug.
 
 ## Strict Rules
 
-- No git ops: no status, diff, branch, commit, push.
-- Step 5 must call `mcp__sequential-thinking__sequentialthinking`.
-- Current state only. Present tense. No changelog, release notes, version
-  history, `previously/now`, breaking-change markers. Replace superseded text.
-- Stay in boundary: no code, no tests, no audit report, no feature
-  `feature.md`/`plan.md`/`design.md`/`tests.md` rewrites.
-- `./workflow/PLAN.md` write only appends docs tails and, in feature-update
-  mode, sets the documented feature to `[/]` archived.
-- One term per concept across all docs.
-
-## Canonical Documentation Discipline
-
-Treat owned docs as current operating context for future agents and users. They
-are not an audit trail.
-
-- Every retained statement must be true now, useful to a future reader, and
-  placed in one canonical home.
-- Rewrite superseded text into the current rule or behavior. Delete it when the
-  code, UI, config, or a clearer doc already carries the same truth.
-- Do not preserve creation history, migration narrative, removed behavior,
-  abandoned decisions, or temporary notes in `README.md` or `./docs/`.
-- Keep historical reason only when it explains an active non-obvious constraint.
-  Write the constraint as present-tense guidance; omit the story.
-- When docs disagree, resolve to the current source of truth instead of blending
-  versions. Leave one current statement and link to it when other docs need it.
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Document the current state only, in the present tense. No changelogs,
+  release notes, version history, "previously/now" phrasing, or
+  breaking-change markers — superseded text is replaced, not annotated.
+- Document only behavior that the code, config, or runnable commands support.
+  Existing docs are claims to verify against the code, not truth by default.
+- Stay inside the ownership boundary: the root `README.md` and `./docs/`. Do
+  not rewrite `feature.md`, `plan.md`, `design.md`, or `tests.md`; do not
+  write code or tests.
+- One canonical home per fact and one term per concept across all docs; other
+  pages link instead of duplicating.
+- `./workflow/PLAN.md` writes are limited to appending docs tails and, in
+  feature-update mode, setting the documented feature to `[/]`.
 
 ## Language Notice
 
-Write user-facing chat output and generated/rewritten artifacts in target
-project working language. Detect from `./workflow/`, docs, user msg. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translation.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, cmds, tool names, code identifiers,
-framework/package names, status markers, established product terms unchanged.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
 
-Do not mix languages in one artifact unless canon already does so or source term
-requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
-## Flow
+## Steps
 
-Use task planning mode. Close items one by one.
+This is a multi-step flow; use task planning mode with one item per step.
 
-### 1. Mode
+1. **Resolve the mode.** Parse `args` per Parameters. In feature-update mode,
+   confirm `./workflow/features/{slug}/feature.md` exists; if it is missing,
+   stop and ask for the correct slug.
 
-Split `args` by spaces.
+2. **Read the context.** Read what exists of the project canon:
+   `./workflow/PROJECT.md` for stack and run commands, `./workflow/VISION.md`
+   and `./workflow/ROADMAP.md` for purpose and direction. In feature-update
+   mode also read the feature's `feature.md`, plus `plan.md`, `design.md`, and
+   `tests.md` when present.
 
-- One token -> `<feature-slug>`. Confirm
-  `./workflow/features/{slug}/feature.md`; missing -> stop, ask correct slug.
-  Run feature-update mode.
-- No token -> inspect `README.md` + `./docs/`.
-  - No docs -> from-scratch mode, document whole project.
-  - Docs exist -> ambiguous; ask one question: whole project or feature update
-    plus slug.
+3. **Scan code and current docs.** Read the implemented code in scope —
+   modules, entry points, commands, behavior — and the current owned docs.
+   Code, config, routes, schemas, and runnable commands are the source of
+   truth for what exists; feature artifacts carry intent and acceptance
+   context.
 
-### 2. Read Project Context
+4. **Reconcile.** Check existing owned docs against the live code: names,
+   behavior, commands, config. In feature-update mode, also sweep the
+   neighboring owned pages for statements the new feature state contradicts —
+   they are part of the scope. Plan in-place fixes that replace stale text
+   rather than adding corrections beside it.
 
-Read if exists:
+5. **Plan the docs.** Decide which pages to create or update and where each
+   belongs: `./docs/concept/` answers why (purpose, ideas, value),
+   `./docs/spec/` answers what (behavior, contracts, reference),
+   `./docs/tech/` answers how (structure, setup, run, extend). Name the reader
+   and the task each page serves, the canonical home for each fact, the text
+   to delete as stale or duplicate, and the gaps that become docs tails. If
+   open questions remain that the user can resolve — audience, depth,
+   conflicting sources — ask them all in one batch before writing, with the
+   recommended option first and marked "(Recommended)".
 
-- `./workflow/PROJECT.md` — stack/run/deploy.
-- `./workflow/VISION.md` — vision.
-- `./workflow/ROADMAP.md` — goals.
+6. **Write the docs.** Create or update `README.md` and the planned `./docs/`
+   pages per Artifact Requirements. Keep the structure of existing pages and
+   fix mismatches in place. Remove empty sections, stale TODOs, and
+   placeholders that no longer help the reader. Unsupported behavior stays out
+   of the docs; record a docs tail only when a real documentation need
+   remains.
 
-Feature-update mode: also read `./workflow/features/{slug}/feature.md`
-(required), plus `plan.md`, `design.md`, `tests.md` when present.
+7. **Self-check.** Verify the result: names and behavior match the
+   implementation, terminology is consistent, each fact lives in one place,
+   every kept paragraph answers a current reader's need, and no page requires
+   history or outside explanation to be understood.
 
-### 3. Scan Code + Docs
+8. **Closing sweep.** Walk the touched pages and normalize them with the
+   `markov` skill: run it on the affected docs via the skill mechanism when
+   available, otherwise apply the same discipline manually. The result reads
+   as if the product had always been in its current form — no biography, no
+   deltas, no orphaned sections.
 
-Read implemented code in scope: modules, entry points, cmds, behavior. Read
-current docs: `README.md`, `./docs/concept/`, `./docs/spec/`, `./docs/tech/`.
+9. **Update PLAN.md and report.** Append docs tails for needed documentation
+   the current material cannot support; tail wording states the missing doc,
+   not how the gap was found. In feature-update mode, set only the documented
+   feature to `[/]`. Report briefly: the mode, pages created or updated,
+   mismatches fixed, tails appended, and the status change. End with the
+   next-step recommendation: the feature branch is complete here; when
+   `./workflow/PLAN.md` shows other features awaiting work, name the next one
+   and the skill its status calls for, otherwise say the pipeline is clear.
 
-Code, config, routes, schemas, and runnable commands = source of truth for what
-exists. Feature artifacts = intent, risk, and acceptance context. Existing docs
-are claims to verify, not truth by default.
-
-### 4. Reconcile Docs
-
-For existing docs, check statements against live code: names, signatures,
-behavior, cmds, config. Mark confirmed vs mismatch. Preserve structure; plan
-in-place fixes. Remove or replace stale owned-doc text instead of adding
-corrections beside it. From-scratch with no docs -> skip.
-
-### 5. Analyze
-
-Call `mcp__sequential-thinking__sequentialthinking`. Decide:
-
-- docs to create/update and folder:
-  - `./docs/concept/` -> why: purpose, ideas, value
-  - `./docs/spec/` -> what: behavior/contracts/reference
-  - `./docs/tech/` -> how: structure, setup, run, extend
-- do not split one doc across explanation/reference/instruction
-- do not add full four-quadrant docs taxonomy
-- reader + task per doc before writing
-- root `README.md` coverage
-- Step 4 mismatches to fix
-- canonical home for each fact; other docs link or summarize only when useful
-- text to delete because it is duplicate, stale, biographical, or unsupported
-- unsupported gaps -> docs tails
-
-Fix result as structured docs plan.
-
-### 6. Write Docs
-
-From plan:
-
-- create/update `README.md` per Artifact Req
-- create/update `./docs/concept/`, `./docs/spec/`, `./docs/tech/` pages
-- each page serves chosen reader/task
-- existing doc -> keep structure, fix mismatches in place
-- current state only; no history/deltas/temp notes
-- unsupported behavior stays out of docs; record a docs tail only when a real
-  documentation need remains
-- remove empty sections, stale TODOs, and placeholders that no longer help the
-  reader
-
-### 7. Self-Check
-
-Verify docs:
-
-- factual accuracy: code/names/behavior match impl
-- clarity: plain, unambiguous
-- consistent terminology
-- no duplication: one fact in one doc; others link
-- self-contained present: no history/external explanation needed
-- retention: every kept paragraph answers a current reader need
-- authority: contradictions resolved to one current statement
-
-### 8. Update `./workflow/PLAN.md`
-
-Append docs tails: needed docs unsupported by current material. Tail wording
-states the active missing documentation, not how the gap was discovered.
-
-In feature-update mode, set the documented feature to `[/]` once its behavior is
-documented. Change only that feature line; do not touch other entries or
-statuses. From-scratch mode changes no feature status.
-
-If `PLAN.md` missing, list gaps in report.
-
-Status markers: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
-implemented, `[*]` tested, `[/]` archived.
-
-### 9. Report
-
-Short report: mode, docs created/updated, mismatches fixed, docs tails appended,
-feature marked `[/]` if feature-update mode.
-
-## Artifact Req
+## Artifact Requirements
 
 ### Root `README.md`
 
-Minimum:
+The front door: project name, short purpose, quick start or usage example,
+configuration and run. Concise, current, accurate.
 
-- project name
-- short purpose
-- quick start or usage example
-- config + run
+### `./docs/` pages
 
-Front door: concise, current, accurate.
+- `./docs/concept/*.md` — purpose, core ideas, value.
+- `./docs/spec/*.md` — behavior and contracts, a precise lookup reference.
+- `./docs/tech/*.md` — structure, setup, run, extend.
 
-### `./docs/` Pages
+Each page serves one reader and one task; do not split a single topic across
+explanation, reference, and instruction pages. Add a page or section only when
+it carries information the reader needs — a few accurate paragraphs are a
+valid complete page. Present tense, current state only; one canonical home per
+fact, with links instead of duplicated detail; a diagram only when it
+clarifies.
 
-- `./docs/concept/*.md`: purpose, core ideas, value.
-- `./docs/spec/*.md`: behavior/contracts, precise lookup reference.
-- `./docs/tech/*.md`: structure/ops, setup, run, extend.
+## Updating PLAN.md
 
-Format rules:
-
-- Current state, present tense.
-- No change history, release notes, versions, `previously/now`.
-- No "changed from", "new", "legacy", "old", or "after migration" phrasing
-  unless the word is part of a live product term or active compatibility
-  contract.
-- No ops chatter; every line helps reader.
-- One canonical home per fact; link instead of duplicating detail.
-- Diagram optional only when clarifies.
+Status markers: `[ ]` new, `[-]` planned, `[+]` split into tasks, `[x]`
+implemented, `[*]` tested, `[/]` archived. This skill appends docs tails and,
+in feature-update mode, changes only the documented feature's line to `[/]`.
+From-scratch mode changes no feature status. If `PLAN.md` is missing, list the
+gaps in the report instead.
 
 ## Notes
 
-- Partial input ok. Missing `PROJECT.md`, `VISION.md`, or `ROADMAP.md` -> use
-  available ctx + code.
-- If tests are documented, describe current guarantees and active gaps, not bug
-  incidents that caused the tests to exist.
+- Partial input is fine: with `PROJECT.md`, `VISION.md`, or `ROADMAP.md`
+  missing, work from the available context and the code.
+- When documenting tested behavior, describe the current guarantees and active
+  gaps, not the incidents that motivated the tests.

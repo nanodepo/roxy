@@ -1,446 +1,152 @@
 ---
 name: roadmap
 description: >
-  Creates/updates project vision and roadmap canon in ./workflow/VISION.md and
-  ./workflow/ROADMAP.md. Triggers: create roadmap, update roadmap, define
-  project vision, set product direction, prioritize goals.
+  Creates or updates the project's vision and roadmap canon in
+  ./workflow/VISION.md and ./workflow/ROADMAP.md. Triggers: create roadmap,
+  update roadmap, define project vision, set product direction, prioritize
+  goals.
 ---
 
-# Roadmap
+# Roadmap — Record the Project Direction Canon
 
 ## Purpose
 
-Record current project meaning, goals, priorities, direction as canon.
+This skill records the project's current meaning, goals, and priorities as
+canon. It creates or updates `./workflow/VISION.md` and `./workflow/ROADMAP.md`
+and maintains roadmap service tails in `./workflow/PLAN.md` for unresolved
+project-level direction questions. Later stages read these files for purpose,
+audience, priorities, constraints, and vocabulary instead of re-deriving them.
 
-Creates/updates:
+It runs after `initialize` and before feature-level work. The developer's
+stated direction is the primary input; local files, docs, and code are
+evidence that confirms, constrains, or challenges it — never a silent
+replacement for it.
 
-- `./workflow/VISION.md`
-- `./workflow/ROADMAP.md`
-- roadmap service tails in `./workflow/PLAN.md` only for unresolved
-  project-level direction follow-up.
+The skill does not write `PROJECT.md`, choose architecture, create feature
+briefs, write PRDs, plan feature implementation, create backlog or release
+plans, or write code and tests.
 
-Use after `initialize`, before feature-level work. Later stages read
-`VISION.md` / `ROADMAP.md` for purpose, audience, priorities, constraints,
-vocab.
+## Parameters
 
-Does not write `PROJECT.md`, choose architecture, create `feature.md`, write
-PRDs, plan feature impl, create backlog/sprint/release plans, write code/tests,
-or perform git ops.
-
-## Params
-
-Use `args` as optional roadmap intent:
-
-```txt
-<roadmap intent, goal, priority change, or product direction>
-```
-
-- Args present -> user's current roadmap request.
-- Args empty -> elicit user's current project stage, goals, horizon, and
-  direction before using workflow files as evidence and constraints.
-- Request/context too vague -> ask open-ended intake questions in Step 2 before
-  local validation.
+`args` is an optional roadmap intent: a goal, a priority change, or a product
+direction. When `args` is empty and the user's message does not state the
+direction, elicit it before reading the codebase in depth.
 
 ## Strict Rules
 
-- No git ops: no status, diff, log, branch, commit, push, checkout, worktree.
-- Own only `./workflow/VISION.md`, `./workflow/ROADMAP.md`, roadmap service
-  tails in `./workflow/PLAN.md`.
-- Do not create/modify feature folders, `feature.md`, `plan.md`, `design.md`,
-  `tests.md`, `NN-task.md`, source code, architecture files, design guideline
-  files, or tech project files.
-- Call `mcp__sequential-thinking__sequentialthinking` during Step 5. Direction
-  work = analytical work.
-- Write `VISION.md` / `ROADMAP.md` as current canon. No change history,
-  decision biography, temp notes, or "previously/now" comparisons.
-- Keep roadmap outcome-focused. Items explain result, rationale, sequence,
-  constraints, confidence; not feature list only.
-- Separate facts from assumptions. Do not present guesses as facts.
-- Treat developer-stated project stage, business goals, product direction,
-  horizon, and priority as the primary direction input. Use workflow files,
-  docs, and code as evidence, constraints, and contradiction checks. Do not
-  override user-stated direction from local inference without asking.
-- Use simplest prioritization lens that explains decision. Prefer light lens
-  over formal scoring unless local canon already uses stronger method.
-- Ask only blocking direction questions: users, goals, horizon, constraints,
-  priority, success signals. Do not ask impl, architecture, UI, test, or docs
-  questions.
-- If tests appear as future roadmap tails, phrase as live project invariants,
-  not incidents or removed behavior.
-
-## Direction Canon Discipline
-
-Treat `VISION.md` and `ROADMAP.md` as current direction canon, not an idea
-archive or priority history.
-
-- Keep only statements that guide a current product choice: audience, problem,
-  scope, priority, sequencing, constraint, success signal, or non-goal.
-- Replace superseded goals, assumptions, and priorities with the current
-  direction. Do not preserve old direction as context.
-- `Not Now` is an active boundary, not a parking lot. Keep an item there only
-  when it prevents wrong near-term choices.
-- Label assumptions only when they affect current prioritization or risk. Remove
-  assumptions that no longer guide decisions.
-- Existing roadmap docs are claims to reconcile. Current user direction is the
-  leading strategic input; current product evidence confirms, constrains, or
-  challenges it. Resolve contradictions before replacing canon.
+- No git operations of any kind; the user owns git, a dirty tree is expected.
+- Own only `./workflow/VISION.md`, `./workflow/ROADMAP.md`, and roadmap
+  service tails in `./workflow/PLAN.md`. Do not touch feature folders,
+  architecture or design files, project tech files, or source code.
+- Write both documents as current canon: present tense, no change history,
+  decision biography, or "previously/now" comparisons. Superseded goals and
+  priorities are replaced, not preserved as context.
+- Keep the roadmap outcome-focused: items explain the result and rationale,
+  not just a feature name. Separate confirmed facts from assumptions.
+- Treat the user-stated stage, goals, horizon, and priorities as the leading
+  strategic input. When local evidence conflicts with it, ask instead of
+  silently choosing the local inference.
+- Ask only direction questions (users, goals, horizon, constraints, priority,
+  success signals) — never implementation, architecture, UI, or test
+  questions. Batch them before writing.
 
 ## Language Notice
 
-Write chat output and generated/rewritten project artifacts in target project
-working language. Detect from `./workflow/`, docs, user request. If unclear,
-use user language.
+Write user-facing chat output and generated or rewritten project artifacts in
+the working language of the target project. Detect it from existing
+`./workflow/` files, project documentation, and the user's request. If the
+project language is unclear, use the user's current language.
 
-When editing existing artifact, preserve language unless user asks translate.
+When editing an existing artifact, preserve its language unless the user
+explicitly asks to translate it.
 
-Apply artifact language to prose, headings, table headers, labels,
-placeholders, examples. Keep paths, commands, tools, code ids, frameworks,
-packages, status markers, product terms as-is.
+Apply the chosen artifact language to all prose, headings, table headers,
+labels, placeholders, and examples. Keep file paths, commands, tool names, code
+identifiers, framework names, package names, status markers, and established
+product terms in their original spelling.
 
-Do not mix languages in one artifact unless project canon already does or quote
-/ source term requires it.
+Do not mix languages inside one artifact unless the existing project canon
+already does so or a quoted or source term requires it.
 
 ## Steps
 
-Use task planning mode for this multi-step flow. Close items one by one.
+Use task planning mode (todo list) for this multi-step flow.
 
-### 1. Read minimal project ctx
+1. **Read the minimal project context.** Read `./workflow/PROJECT.md`,
+   `VISION.md`, `ROADMAP.md`, and `PLAN.md` if they exist; read
+   `ARCHITECTURE.md` or `DESIGN.md` only when they constrain product
+   direction. Missing files do not stop the skill. Treat existing direction
+   docs as candidates for the current canon, not history to preserve.
 
-Read if exists:
+2. **Elicit the user's direction.** If the request does not already answer it,
+   ask concise open-ended questions covering only the blocking inputs: current
+   stage, near- and longer-term direction, goals, target users, horizon,
+   constraints, success signals, explicit "not now" items. The developer knows
+   project intent better than code can infer it.
 
-- `./workflow/PROJECT.md`: stack, run, deploy, project shape.
-- `./workflow/VISION.md`: current meaning.
-- `./workflow/ROADMAP.md`: current goals/priorities.
-- `./workflow/PLAN.md`: workflow status + service tails.
-- `./workflow/ARCHITECTURE.md` / `./workflow/DESIGN.md`: only when they affect
-  product constraints/direction.
+3. **Validate against local evidence.** Inspect code, docs, and feature briefs
+   only as far as needed to confirm, constrain, or challenge the stated
+   direction. Note conflicts and gaps; do not turn implementation detail into
+   roadmap output.
 
-Missing file -> continue. Do not create unrelated workflow files to compensate.
-Treat existing `VISION.md` and `ROADMAP.md` as current-canon candidates, not
-history to preserve automatically.
+4. **Synthesize the direction.** Reason through: what the project exists to
+   do and for whom; the most important problem; outcomes versus outputs;
+   sequencing across Now / Next / Later given value, effort, risk, and
+   dependencies; what current statements to keep, rewrite, or delete; which
+   unresolved project-level decisions become roadmap tails.
 
-Use this first read to detect language, existing canon, and obvious project
-shape. Do not synthesize final direction from local files before user direction
-intake unless the user's request already provides enough current direction.
+5. **Ask reconciliation questions.** Resolve open points from the intake
+   answers and local evidence first. Then ask the user at most a few concise
+   questions in one batch — only those whose answer changes purpose, users,
+   priority, horizon, constraints, or success signals. For option questions,
+   put the recommended option first marked `(Recommended)` with a short
+   reason. A non-blocking question becomes an assumption or a roadmap tail,
+   not an interruption.
 
-### 2. Elicit user direction first
+6. **Write `./workflow/VISION.md` and `./workflow/ROADMAP.md`** per Artifact
+   Requirements. Replace stale content in place; remove answered assumptions,
+   stale priorities, and inactive "not now" entries.
 
-If `args` / current user message does not already answer the current direction,
-ask concise open-ended intake questions before code or docs validation.
+7. **Update roadmap tails in `./workflow/PLAN.md`** per Updating PLAN.md.
 
-Cover only blocking roadmap inputs:
-
-- current project stage;
-- near-term and longer-term direction;
-- business / product goals;
-- target users or stakeholders;
-- planning horizon;
-- current constraints;
-- success signals;
-- explicit `Not Now`.
-
-Ask in the user's language. Do not offer preselected options in this first
-intake round. The developer knows project intent better than code can infer it.
-
-If user input already covers these points, proceed without interruption and
-treat the provided direction as the primary input.
-
-### 3. Inspect only needed local ctx
-
-Inspect code/docs/feature briefs after user direction intake, and only to
-validate, constrain, or challenge the stated direction.
-
-Keep narrow:
-
-- prefer `rg --files`, top-level dir reads, focused reads;
-- avoid broad code analysis unless roadmap request depends on actual product
-  state;
-- use impl details as constraints/evidence, not roadmap output.
-- use changelogs, old tickets, and archived feature notes only when they reveal
-  an active constraint or decision risk.
-- when local evidence conflicts with user-stated direction, record the conflict
-  for clarification instead of silently choosing the local inference.
-
-### 4. Extract direction inputs
-
-Identify:
-
-- user-stated project stage, goals, horizon, direction, constraints, and
-  success signals;
-- local evidence that confirms the user-stated direction;
-- local evidence that conflicts with, constrains, or is missing for the
-  user-stated direction;
-- purpose + target users;
-- problem space + user/project outcome to improve;
-- positioning + differentiation;
-- current capabilities + constraints;
-- known goals, priorities, deps, risks;
-- explicit user intent from `args` / current msg;
-- confirmed facts, assumptions, low-confidence guesses;
-- `Not Now` items: out of scope, deferred, not aligned.
-- stale goals, assumptions, or `Not Now` items to remove because they no longer
-  guide current direction.
-
-Think goal-backward: future state first, then priorities that support it.
-
-### 5. Synthesize with `mcp__sequential-thinking__sequentialthinking`
-
-Call `mcp__sequential-thinking__sequentialthinking`. Reason through:
-
-- the user-stated project stage, intended direction, goals, and horizon;
-- what local evidence confirms;
-- what local evidence contradicts, constrains, or fails to show;
-- what project exists to do;
-- who it serves / does not serve;
-- most important problem/need;
-- guiding principles for future choices;
-- outcomes vs outputs;
-- known/missing success signals;
-- sequencing across `Now`, `Next`, `Later`;
-- value, strategic fit, effort, risk, deps, confidence effects on priority;
-- confirmed decisions vs assumptions;
-- explicit `Not Now`;
-- what current statements to keep, rewrite, or delete;
-- unresolved project-level decisions needing roadmap tails in
-  `./workflow/PLAN.md`;
-- truly blocking questions before canon write.
-
-Do not turn reasoning into PRD, backlog, sprint plan, release plan, feature
-brief, or architecture decision.
-
-### 6. Ask reconciliation questions only
-
-Before asking user, answer open points from the intake answers, `./workflow/`,
-local docs, product code, and current request.
-
-Ask at most three concise questions in one block, only when answer changes
-purpose, target users, problem framing, priority, horizon, constraints, or
-success signals.
-
-Use preselected options only in this reconciliation step, after local
-validation. For each option question: recommended option first with
-`(Recommended)` + short reason. Offer only materially different options.
-
-Non-blocking question -> write as assumption or roadmap tail, not interruption.
-
-### 7. Write `./workflow/VISION.md`
-
-Create/update using Artifact Requirements.
-
-Write current vision only. Replace stale content; do not preserve as history.
-Keep the vision stable and compact: reader, problem, value, principles, success,
-constraints, non-goals.
-
-### 8. Write `./workflow/ROADMAP.md`
-
-Create/update using Artifact Requirements.
-
-Use outcome-oriented items. Each active item explains outcome/rationale, not
-only feature/task name.
-Remove answered assumptions, stale priorities, and inactive `Not Now` entries.
-
-### 9. Update roadmap tails in `./workflow/PLAN.md`
-
-Append/refresh only roadmap service tails: unresolved project-level questions
-about vision, goals, priority, sequencing, success signals.
-If a roadmap tail is answered by the new canon, do not keep or refresh it as
-history. If preserving existing PLAN structure prevents deletion, leave it
-untouched and do not duplicate it.
-
-Do not add feature entries, change feature statuses, or modify non-roadmap
-service tails.
-
-If `./workflow/PLAN.md` exists, preserve structure and add roadmap tails in
-most relevant existing service section. If no suitable section, add:
-
-```md
-## Roadmap Tails
-
-- [ ] <roadmap-level decision needed>
-  - source: `./workflow/ROADMAP.md`
-```
-
-If `./workflow/PLAN.md` missing, create it only when roadmap tails exist. Keep
-limited to `Roadmap Tails` section.
-
-### 10. Quality checklist
-
-Verify:
-
-- `VISION.md` and `ROADMAP.md` need no chat transcript.
-- Both docs describe current project state, not creation history.
-- User-stated project stage, direction, goals, horizon, constraints, and success
-  signals are reflected or intentionally marked as assumptions / tails.
-- Local evidence is used as validation, constraint, or contradiction check, not
-  as a replacement for user-stated business direction.
-- Any conflict between user direction and local evidence is resolved by
-  clarification, represented as a risk, or recorded as a roadmap tail.
-- `VISION.md` answers: users, problem, why matters, positioning, principles,
-  success.
-- `ROADMAP.md` explains direction, outcomes, sequencing, rationale, deps, risks,
-  confidence, assumptions, `Not Now`.
-- Priorities align with vision + constraints.
-- Assumptions / low-confidence items labeled.
-- Roadmap does not create feature briefs, impl plans, or backlog items.
-- `./workflow/PLAN.md` contains only roadmap tails from this skill.
-- Every kept item guides a current choice; stale ideas and answered questions
-  are absent from owned artifacts.
-
-### 11. Report
-
-Report briefly:
-
-- paths written;
-- main vision/roadmap decisions;
-- assumptions / low-confidence areas;
-- roadmap tails added to `./workflow/PLAN.md`, if any;
-- next recommended workflow stage.
+8. **Report.** State the paths written, the main direction decisions, labeled
+   assumptions, and any roadmap tails added. End with the next-step
+   recommendation: the next missing canon artifact — `architecture` when
+   `ARCHITECTURE.md` is absent, `design-guideline` when `DESIGN.md` is absent
+   — or `feature` when the project canon is complete.
 
 ## Artifact Requirements
 
-Create `./workflow/VISION.md` as self-contained artifact per Language Notice.
+Both documents are self-contained, need no chat transcript, and do not
+duplicate each other. Size is proportional to the project: a small project
+gets a short vision and a short roadmap.
 
-Use semantic structure. Translate visible headings, field labels, table headers,
-placeholders, examples:
+`./workflow/VISION.md` — the stable "why". Core sections: purpose and users;
+problem and value; principles that guide product choices; success signals;
+non-goals and constraints. Add a section (for example positioning) only when
+it carries a decision the project actually needs.
 
-```md
-# VISION.md
-
-## Purpose
-
-<Why the project exists.>
-
-## Users
-
-- Primary audience:
-- Secondary audience:
-- Not the target audience:
-
-## Problem
-
-- Main problem:
-- Why it matters:
-- What changes for the user:
-
-## Positioning
-
-- What the project is:
-- What the project is not:
-- How it differs from alternatives:
-
-## Principles
-
-- <Principle that guides product choices>
-
-## Success Signals
-
-- User outcome:
-- Project outcome:
-- Qualitative or quantitative signal:
-
-## Constraints
-
-- Technical:
-- Product:
-- Resource:
-
-## Non-Goals
-
-- <What the project intentionally does not do>
-```
-
-Create `./workflow/ROADMAP.md` as self-contained artifact per Language Notice.
-
-Use semantic structure. Translate visible headings, field labels, table headers,
-placeholders, examples:
-
-```md
-# ROADMAP.md
-
-## Direction
-
-<Current strategic focus.>
-
-## Goals
-
-### Goal 1: <Name>
-
-Outcome: Enable <user or segment> to <desired outcome> so that <project impact>.
-
-Success signals:
-
-- <Signal>
-
-Confidence:
-
-- High / Medium / Low
-
-Assumptions:
-
-- <Assumption or condition>
-
-## Horizons
-
-### Now
-
-- [ ] <Direction or goal>
-  - Outcome:
-  - Rationale:
-  - Dependencies:
-  - Risk:
-  - Confidence:
-
-### Next
-
-- [ ] <Direction or goal>
-  - Outcome:
-  - Rationale:
-  - Dependencies:
-  - Risk:
-  - Confidence:
-
-### Later
-
-- <Direction or goal without a time promise>
-
-## Not Now
-
-- <Deferred or out-of-scope item>
-  - Reason:
-
-## Risks and Trade-Offs
-
-- <Risk> -> <mitigation or decision needed>
-```
-
-## Artifact Compression Rules
-
-Keep artifacts complete but tight:
-
-- current rules + direction, not discovery notes;
-- short declarative sections over long explanations;
-- examples only when they clarify canon;
-- no duplicated points between `VISION.md` and `ROADMAP.md`;
-- unresolved project-level direction in roadmap tails, not prose disclaimers;
-- `Not Now` contains active boundaries only, not rejected-idea history;
-- omit empty sections only when truly irrelevant.
+`./workflow/ROADMAP.md` — the current "what next". Core sections: direction
+(the current strategic focus); horizons Now / Next / Later, where each active
+item names its outcome and rationale; Not Now — active boundaries that prevent
+wrong near-term choices, not a rejected-idea archive. Add risks, dependencies,
+or confidence notes only where they affect a real prioritization decision.
+Label assumptions explicitly.
 
 ## Updating PLAN.md
 
-At end, touch `./workflow/PLAN.md` only for roadmap service tails from Step 9.
-Do not create/update feature entries or change feature statuses.
-
-Use `[ ]` for unresolved roadmap tails. Do not use feature status markers to
-imply roadmap lifecycle.
+Touch `./workflow/PLAN.md` only for roadmap service tails: unresolved
+project-level questions about vision, goals, priority, or success signals,
+marked `[ ]`. Place them in the most relevant existing service section, or add
+a `## Roadmap Tails` section if none fits. Remove or do not refresh tails the
+new canon answers. Do not add feature entries, change feature statuses, or
+modify non-roadmap tails. Create `PLAN.md` only when roadmap tails exist and
+the file is missing.
 
 ## Notes
 
-- If `initialize` has not run and `./workflow/PROJECT.md` missing, proceed only
-  if direction can still be inferred from user answers + local ctx. Else ask
-  user to initialize first or answer blocking ctx questions.
-- Existing `VISION.md` / `ROADMAP.md` with current rules mixed stale notes:
-  preserve current rules, remove stale notes.
-- Local evidence conflicts with current user direction -> ask focused
-  clarification before canon write.
-- Roadmap = feasibility check + strategic narrative, not delivery-date promise.
-- Follow steps literally; do not shorten them.
+- If `initialize` has not run, proceed only when direction can still be
+  established from the user and local context; otherwise recommend running
+  `initialize` first.
+- The roadmap is a strategic narrative with a feasibility check, not a
+  delivery-date promise.
